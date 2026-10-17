@@ -157,29 +157,71 @@ Finally, request reviewers on the PR, move the Jira ticket to **In Review**, and
 
 Code review is how we maintain quality and learn from each other. Treat questions, suggestions, and mistakes as chances to improve the project and everyone's skills.
 
-## 6. Merging
+## 6. Merging a Pull Request
 
-A PR can be merged when it has its 2 approvals, all conversations are resolved, and your branch is current with `dev`.
+This one procedure covers **every** merge: a ticket branch into `dev`, and `dev` into `main`. Only `dev` is ever merged into `main`.
 
-1. The PR author clicks **Merge pull request**. We use merge commits, which is the only option enabled. Never merge your own PR before it has the required approvals.
-2. Delete the branch when GitHub offers.
-3. Move the Jira ticket to **Done**.
-4. Tell the team so they can pull:
+**Who merges:** the person who opened the PR, once it is ready. For a release PR (`dev` into `main`), the team lead opens and merges it. Never merge a PR you have not seen approved.
+
+### Step 1: Confirm the PR is ready to merge
+
+All of these must be true:
+
+- [ ] It has **2 approving reviews**, and both are on the **latest commit**. New commits reset approvals (section 5).
+- [ ] Every review conversation is **resolved**, with the concern actually addressed.
+- [ ] No reviewer has an open **Changes requested**.
+- [ ] GitHub shows **no conflicts**. If it does, see section 7.
+- [ ] The branch is **current with its base branch**. If GitHub says it is behind, merge the base into your branch first (section 3), push, and get fresh approvals. Do this _before_ asking for final reviews so you don't invalidate them.
+- [ ] You ran the app and the tests on the final version, and they pass.
+- [ ] The PR title and description are accurate, with the ticket key and a clear summary.
+
+If any box is unchecked, do not merge. Fix it first, or ask the team lead.
+
+### Step 2: Check the target
+
+Look at the line near the top of the PR: **base: `dev`** or **base: `main`**.
+
+- A ticket branch must target `dev`.
+- Only `dev` may target `main`.
+- If the base is wrong, stop and ask. Do not merge.
+
+### Step 3: Merge
+
+Ideally the PR author merges their own changes.
+
+Click **Merge pull request**, then **Confirm merge**. We use merge commits: it is the only option GitHub offers, and it keeps the history of what was merged and when. Never merge with any bypass or override. If the button is disabled, see the table below.
+
+### Step 4: Clean up and tell the team
+
+|           | Ticket branch → `dev`                                            | `dev` → `main`                            |
+| --------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| On GitHub | Click **Delete branch**                                          | **Do not delete `dev`**                   |
+| Locally   | `git switch dev`, `git pull`, then `git branch -d <your-branch>` | `git switch main`, `git pull`             |
+| Jira      | Move the ticket to **Done**                                      | Confirm every included ticket is **Done** |
+| Verify    | Run the app on the updated `dev`                                 | Run the app on the updated `main`         |
+| Announce  | Post in the team channel                                         | Post in the team channel                  |
+
+**Announcement templates**
 
 ```
 Merged TEAM3-12 (user login) into dev. Please pull dev. It touches the nav and routes files.
 ```
 
-If you are unsure whether a PR is ready to merge, ask the team lead or a mentor.
+Released dev to main (<date>): TEAM3-12 user login, TEAM3-15 profile page. main is up to date.
 
-**When to message the team**
+### If something breaks after merging
 
-| Moment                      | Message                                      |
-| --------------------------- | -------------------------------------------- |
-| You open a PR               | Link it and ask for reviewers                |
-| You merge into `dev`        | Say what it touched and ask everyone to pull |
-| `dev` is merged into `main` | Announce the release                         |
-| You are blocked or stuck    | Say so right away                            |
+Tell the team right away, in the channel. Do not quietly patch it. The team lead decides whether to revert the merge or fix it forward. Either way, the fix goes through a ticket and a PR like any other change.
+
+### If the merge button is disabled
+
+| What GitHub shows                       | What it means                                          | What to do                                       |
+| --------------------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
+| Review required / waiting for approvals | Fewer than 2 approvals on the latest commit            | Request reviews, or re-request after new commits |
+| Changes requested                       | A reviewer is blocking                                 | Address the comments, then ask them to re-review |
+| Conversations unresolved                | Open review threads                                    | Address each, then resolve it                    |
+| This branch has conflicts               | Your branch and the base disagree                      | Resolve them (section 7)                         |
+| Can't approve your own / last pusher    | The person who pushed last cannot count as an approver | Ask someone else to review                       |
 
 ## 7. Merge Conflicts
 
@@ -213,8 +255,8 @@ Release when `dev` is stable and passing tests, and the team agrees (usually at 
 
 1. Confirm all the PRs meant for this release are merged into `dev`.
 2. Everyone pulls `dev`. Run the app and the project's tests.
-3. Open a PR from `dev` to `main`, titled `Release: <date>`.
-4. Get the 2 approvals, then merge with a merge commit.
+3. Open a PR from `dev` to `main`, titled `Release: <date>`, listing the tickets included.
+4. Get the 2 approvals, then merge it following section 6.
 5. Announce the release in the team channel.
 
 ## 9. Jira and GitHub
