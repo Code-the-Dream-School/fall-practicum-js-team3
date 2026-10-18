@@ -30,7 +30,7 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 // The one function every API call goes through
-export async function request<T>(
+export async function apiRequest<T>(
   path: string,
   { method = 'GET', body, token, signal }: RequestOptions = {}
 ): Promise<T> {
