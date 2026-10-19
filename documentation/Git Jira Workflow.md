@@ -13,7 +13,7 @@ Table of contents
 6. [Merging](#6-merging)
 7. [Merge Conflicts](#7-merge-conflicts)
 8. [Releasing `dev` to `main`](#8-releasing-dev-to-main)
-9. [Jira and GitHub](#8-releasing-dev-to-main)
+9. [Jira and GitHub](#9-jira-and-github)
 10. [Quick Reference](#10-quick-reference)
 
 ## 0. Purpose
@@ -53,7 +53,7 @@ TEAM3-12-user-login  →  dev  →  main
 git checkout -b TEAM3-30-update-the-repo-about-section
 ```
 
-4. Do not run it yet. First switch to an up-to-date `dev` (see section 3 below: [Working on a Ticket](#3-working-on-a-ticket)), then paste the command. If Jira asks which branch to start from, choose `dev`, never `main`.
+4. Do not run it yet. First switch to an up-to-date `dev` (see section 3: [Working on a Ticket](#3-working-on-a-ticket)), then paste the command. If Jira asks which branch to start from, choose `dev`, never `main`.
 
 Do not rename or invent your own branch name. No ticket yet? Ask the team lead to create one first: every branch needs a ticket.
 
@@ -64,7 +64,7 @@ Every ticket follows the same steps, whatever its type (feature, bug, hotfix, ch
 ### Start
 
 1. In Jira, assign the ticket to yourself and move it to **In Progress**.
-2. Using the name you copied from Jira (section 2), create your branch from the latest `dev`:
+2. Using the name you copied from Jira (see section 2: [Branch Names](#2-branch-names)), create your branch from the latest `dev`:
 
 ```
 git switch dev
@@ -99,7 +99,7 @@ git fetch origin
 git merge origin/dev
 ```
 
-If Git reports conflicts, see section 7. Then run the app and tests before continuing.
+If Git reports conflicts, see section 7 ([Merge Conflicts](#7-merge-conflicts)). Then run the app and tests before continuing.
 
 **When to run `git pull` on `dev`:** every time you switch back to `dev` to start a new branch, and whenever a teammate announces they merged into `dev`.
 
@@ -167,11 +167,11 @@ This one procedure covers **every** merge: a ticket branch into `dev`, and `dev`
 
 All of these must be true:
 
-- [ ] It has **2 approving reviews**, and both are on the **latest commit**. New commits reset approvals (section 5).
+- [ ] It has **2 approving reviews**, and both are on the **latest commit**. New commits reset approvals ([Reviewing Pull Requests](#5-reviewing-pull-requests)).
 - [ ] Every review conversation is **resolved**, with the concern actually addressed.
 - [ ] No reviewer has an open **Changes requested**.
-- [ ] GitHub shows **no conflicts**. If it does, see section 7.
-- [ ] The branch is **current with its base branch**. If GitHub says it is behind, merge the base into your branch first (section 3), push, and get fresh approvals. Do this _before_ asking for final reviews so you don't invalidate them.
+- [ ] GitHub shows **no conflicts**. If it does, see section 7 ([Merge Conflicts](#7-merge-conflicts)).
+- [ ] The branch is **current with its base branch**. If GitHub says it is behind, merge the base into your branch first (see section 3: [Working on a Ticket](#3-working-on-a-ticket)), push, and get fresh approvals. Do this _before_ asking for final reviews so you don't invalidate them.
 - [ ] You ran the app and the tests on the final version, and they pass.
 - [ ] The PR title and description are accurate, with the ticket key and a clear summary.
 
@@ -215,13 +215,13 @@ Tell the team right away, in the channel. Do not quietly patch it. The team lead
 
 ### If the merge button is disabled
 
-| What GitHub shows                       | What it means                                          | What to do                                       |
-| --------------------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
-| Review required / waiting for approvals | Fewer than 2 approvals on the latest commit            | Request reviews, or re-request after new commits |
-| Changes requested                       | A reviewer is blocking                                 | Address the comments, then ask them to re-review |
-| Conversations unresolved                | Open review threads                                    | Address each, then resolve it                    |
-| This branch has conflicts               | Your branch and the base disagree                      | Resolve them (section 7)                         |
-| Can't approve your own / last pusher    | The person who pushed last cannot count as an approver | Ask someone else to review                       |
+| What GitHub shows                       | What it means                                          | What to do                                                          |
+| --------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------- |
+| Review required / waiting for approvals | Fewer than 2 approvals on the latest commit            | Request reviews, or re-request after new commits                    |
+| Changes requested                       | A reviewer is blocking                                 | Address the comments, then ask them to re-review                    |
+| Conversations unresolved                | Open review threads                                    | Address each, then resolve it                                       |
+| This branch has conflicts               | Your branch and the base disagree                      | Resolve them (see section 7: [Merge Conflicts](#7-merge-conflicts)) |
+| Can't approve your own / last pusher    | The person who pushed last cannot count as an approver | Ask someone else to review                                          |
 
 ## 7. Merge Conflicts
 
@@ -256,7 +256,7 @@ Release when `dev` is stable and passing tests, and the team agrees (usually at 
 1. Confirm all the PRs meant for this release are merged into `dev`.
 2. Everyone pulls `dev`. Run the app and the project's tests.
 3. Open a PR from `dev` to `main`, titled `Release: <date>`, listing the tickets included.
-4. Get the 2 approvals, then merge it following section 6.
+4. Get 1 approval from a mentor, then merge it following section 6 ([Merging](#6-merging)).
 5. Announce the release in the team channel.
 
 ## 9. Jira and GitHub
