@@ -2,11 +2,15 @@
 
 <!-- Link or key, e.g. TEAM3-12 -->
 
-[TEAM3-]()
+[TEAM3-XX](paste_Jira_ticket_URL_here)
 
 ## What changed
 
 <!-- What did you change, and why? A few sentences. -->
+
+## Decisions
+
+<!-- What was decided, and why? A few sentences. -->
 
 ## How to test
 
