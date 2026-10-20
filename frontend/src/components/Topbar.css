@@ -1,0 +1,116 @@
+.cad-header {
+  height: 68px;
+  background-color: var(--bg-app);
+  border-bottom: 1px solid var(--bg-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.header-left-zone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 160px;
+}
+
+.logo-img {
+  height: 40px;            
+  width: auto;             
+  object-fit: contain;     
+  display: block;
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: -0.2px;
+}
+
+
+.header-vertical-divider {
+  width: 1px;
+  height: 28px; 
+  background-color: var(--bg-border);
+}
+
+.project-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.project-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.save-timestamp {
+  font-size: 0.75rem;
+  color: #10b981; 
+  margin-top: 2px;
+}
+
+.header-center-zone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); 
+}
+
+.action-btn {
+  background-color: var(--bg-app);
+  border: 1px solid var(--bg-border);
+  color: var(--text-main);
+  padding: 8px 20px; 
+  font-size: 0.95rem;       
+  font-weight: 600;         
+  min-width: 90px;          
+  justify-content: center; 
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  background-color: var(--bg-panel);
+  border-color: #cbd5e1;
+}
+
+.header-right-zone {
+  display: flex;
+  align-items: center;
+}
+
+.header-right-zone .export-stl-btn {
+  padding: 8px 22px; 
+  font-size: 0.95rem;
+  font-weight: 600;
+  background-color: #0369a1; 
+  border-color: #025a8b;
+  color: #ffffff;
+}
+
+.header-right-zone .export-stl-btn:hover {
+  background-color: #025a8b;
+  border-color: #014c76;
+}
