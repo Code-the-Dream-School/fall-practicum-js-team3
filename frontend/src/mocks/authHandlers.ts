@@ -7,18 +7,15 @@
 
   Each handler below imitates one real endpoint and answers exactly as the API
   documentation says: the same status codes, error codes and field names.
+  Passwords are never stored: the mock only checks that one was sent.
   Right now it contains one endpoint: registration.
 */
+
 import { http, HttpResponse } from 'msw'
 import type { RegisterPayload, User } from '../types/auth.ts'
 
-// A user as the fake server stores it: the public user data plus the password
-interface MockUser extends User {
-  password: string
-}
-
 // The fake database of accounts. It lives in memory and is emptied when the page reloads
-const registeredUsers: MockUser[] = []
+const registeredUsers: User[] = []
 
 // Builds an error answer in the same format as the real API: { error: { code, message } }
 const errorResponse = (status: number, code: string, message: string) =>
@@ -40,11 +37,10 @@ export const authHandlers = [
     }
 
     // 3. Everything is fine -> save the user
-    const newUser: MockUser = {
+    const newUser: User = {
       id: `user_${registeredUsers.length + 1}`,
       name,
       email: email.toLowerCase(),
-      password,
       createdAt: new Date().toISOString(),
     }
     registeredUsers.push(newUser)
