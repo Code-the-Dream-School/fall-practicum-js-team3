@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
 import './Viewport.css';
@@ -52,6 +52,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const meshesRef = useRef<Map<number, THREE.Mesh>>(new Map());
+  const [webglError, setWebglError] = useState(false);
 
   // Set up the 3D workspace.
   useEffect(() => {
@@ -73,8 +74,18 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
     );
     camera.position.z = 5;
 
-    // Renderer Setup 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Renderer Setup
+    let renderer: THREE.WebGLRenderer;
+
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      setWebglError(false);
+    } catch {
+      console.error('WebGL is not supported or could not be initialized.');
+      sceneRef.current = null;
+      setWebglError(true);
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
@@ -214,16 +225,25 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
     
   
     return (
-    <main className="cad-viewport">
-      <div ref={containerRef} className="canvas-wrapper">
-        <div className="canvas-connection-overlay">
-          <h2>Frontend Test Node</h2>
-          {error && <p className="error-text">{error}</p>}
-          {!error && <p className="message-text">API Payload: <strong>{message}</strong></p>}
+      <main className="cad-viewport">
+        {webglError ? (
+          <div className="webgl-error" role="alert">
+            <h2>3D Canvas Unavailable</h2>
+            <p>
+              Your browser or device could not initialize WebGL.
+            </p>
+          </div>
+      ) : (
+        <div ref={containerRef} className="canvas-wrapper">
+          <div className="canvas-connection-overlay">
+            <h2>Frontend Test Node</h2>
+            {error && <p className="error-text">{error}</p>}
+            {!error && (<p className="message-text">API Payload: <strong>{message}</strong></p>)}
+          </div>
         </div>
-      </div>
-    </main>
-  );
+      )}
+      </main>
+    );
 
 }
 
