@@ -1,5 +1,44 @@
 # Backend API Best Practices & Security Guide
 
+## Authentication API contract
+
+The auth router is mounted at `/api/auth`.
+
+### `POST /api/auth/login`
+
+Request JSON: `{ "email": "person@example.com", "password": "..." }`.
+
+- Returns `400` when email or password is missing or has the wrong type.
+- Returns the same `401` response for an unknown email and an incorrect password.
+- On success, returns `200` with `{ success, message, data: { token, expiresIn, user } }`.
+- The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
+- The response never includes the password hash.
+
+The login query expects PostgreSQL `users` columns `id`, `username`, `email`, and
+`passwordHash`, matching the shared DBML. Registration must save a bcrypt hash in
+`passwordHash` and normalize email to lowercase (the login lookup is case-insensitive).
+Because this field uses camel case in PostgreSQL, SQL must quote it as `"passwordHash"`.
+The `POSTGRES_URI`
+and a strong `JWT_SECRET` (at least 32 characters) must be set in the backend environment.
+Set `CLIENT_ORIGIN` to the frontend origin; multiple origins can be comma-separated.
+
+### PostgreSQL setup for authentication
+
+The backend uses the existing `pg` connection pool; Prisma is not part of this setup.
+Create or obtain a PostgreSQL database, set its connection string as `POSTGRES_URI`,
+then run `npm run db:setup` from the `backend` directory. This applies
+`src/db/migrations/001_create_users.sql` and creates the `users` table if it does not
+already exist. The registration endpoint should provide the UUID `id`, save the bcrypt
+hash in the quoted `"passwordHash"` column, and store email in lowercase.
+
+### `POST /api/auth/logout`
+
+Returns `200` to confirm logout. Because access tokens are stateless bearer JWTs,
+the client must delete its token when logging out. Tokens already issued remain
+usable until their 15-minute expiry; use a server-side session or revocation list
+if immediate token invalidation becomes an MVP requirement. The response uses the
+same `{ success, message, data }` shape as login.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 
