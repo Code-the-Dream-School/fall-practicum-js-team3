@@ -33,7 +33,7 @@ export default function Header() {
         ) : (
           !isLoading && (
             <>
-              <Link to='/login'>Sign in</Link>
+              <Link to='/login'>Sign in</Link>{'   '}
               <Link to='/register'>Create account</Link>
             </>
           )
