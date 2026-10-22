@@ -58,6 +58,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    const meshes = meshesRef.current;
 
     
     // Initialize Core Three.js Architecture
@@ -79,11 +80,10 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
 
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true });
-      setWebglError(false);
     } catch {
       console.error('WebGL is not supported or could not be initialized.');
       sceneRef.current = null;
-      setWebglError(true);
+      queueMicrotask(() => setWebglError(true)); // Schedule the state update after the current synchronous code finishes.
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -102,7 +102,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
     scene.add(directionalLight);
 
     const grid = new THREE.GridHelper(30, 30, '#cbd5e1', '#e2e8f0');
-    grid.position.y = -1; 
+    grid.position.y = 0; 
     scene.add(grid);
     
     // Select a block when it is clicked
@@ -158,12 +158,13 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
       resizeObserver.disconnect();
       renderer.domElement.removeEventListener('click', handleCanvasClick);
       
-      meshesRef.current.forEach((mesh) => {
+      
+      meshes.forEach((mesh) => {
         scene.remove(mesh);
         mesh.geometry.dispose();
         (mesh.material as THREE.Material).dispose();
       });
-      meshesRef.current.clear();
+      meshes.clear();
 
       scene.remove(grid);
       grid.geometry.dispose();
@@ -210,9 +211,15 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
         material
       );
 
+      // Positioning the bottom of each shape on the grid.
+      const geometry = mesh.geometry;
+      geometry.computeBoundingBox();
+
+      const bottom = geometry.boundingBox?.min.y ?? 0;
+
       mesh.position.set(
         block.position.x,
-        block.position.y,
+        block.position.y - bottom,
         block.position.z
       );
 

@@ -1,11 +1,6 @@
 import './Topbar.css';
 
-interface TopbarProps {
-  error: string | null;
-  message: string;
-}
-
-function Topbar({ error, message }: TopbarProps) {
+function Topbar() {
 
   return (
     <header className="cad-header">

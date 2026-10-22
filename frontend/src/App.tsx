@@ -79,7 +79,7 @@ function App() {
 
   return (
     <div className="cad-container">
-      <Topbar error={error} message={message} />
+      <Topbar />
       <div className="cad-workspace">
         <Sidebar onAddBlock={handleAddBlock} onUpdateColor={handleUpdateBlockColor} />
         <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId}/>
