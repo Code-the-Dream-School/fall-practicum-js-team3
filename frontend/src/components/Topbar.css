@@ -72,22 +72,19 @@
 }
 
 .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 90px;
+  padding: 6px 14px;
   background-color: var(--bg-app);
   border: 1px solid var(--bg-border);
-  color: var(--text-main);
-  padding: 8px 20px; 
-  font-size: 0.95rem;       
-  font-weight: 600;         
-  min-width: 90px;          
-  justify-content: center; 
-  padding: 6px 14px;
   border-radius: var(--radius-md);
+  color: var(--text-main);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   transition: all 0.15s ease;
 }
 
