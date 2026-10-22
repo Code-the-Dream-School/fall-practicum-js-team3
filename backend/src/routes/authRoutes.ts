@@ -4,7 +4,10 @@ import {
   logoutUser,
   registerUser
 } from "../controllers/authController";
-import { validateLoginBody } from "../middleware/authValidation";
+import {
+  validateLoginBody,
+  validateRegisterBody
+} from "../middleware/authValidation";
 
 const router = Router();
 
@@ -14,6 +17,6 @@ router.post("/login", validateLoginBody, loginUser);
 // POST /api/auth/logout
 router.post("/logout", logoutUser);
 
-router.post("/register", registerUser);
+router.post("/register", validateRegisterBody, registerUser);
 
 export default router;

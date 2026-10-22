@@ -30,15 +30,19 @@ export const insertUser = async (
   email: string,
   password: string
 ): Promise<AuthUser | null> => {
-  const salt = await bcrypt.genSalt(12);
-  const passwordHash = await bcrypt.hash(password, salt);
-  const id = randomUUID();
-  const result = await pool.query<AuthUser>(
-    `INSERT INTO users (id, username, email, "passwordHash")
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, username, email, "passwordHash"`,
-    [id, username, email, passwordHash]
-  );
+  try {
+    const salt = await bcrypt.genSalt(12);
+    const passwordHash = await bcrypt.hash(password, salt);
+    const id = randomUUID();
+    const result = await pool.query<AuthUser>(
+      `INSERT INTO users (id, username, email, "passwordHash")
+			VALUES ($1, $2, $3, $4)
+			RETURNING id, username, email, "passwordHash"`,
+      [id, username, email, passwordHash]
+    );
 
-  return result.rows[0] ?? null;
+    return result.rows[0];
+  } catch (error) {
+    return null;
+  }
 };

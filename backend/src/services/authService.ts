@@ -35,6 +35,9 @@ export const createUser = async (
   password: string
 ): Promise<AuthResult> => {
   const user = await insertUser(username, email, password);
+  if (!user) {
+    throw new ApiError(409, "A user with those details already exists.");
+  }
   return {
     token: createAccessToken(user),
     user: { id: user.id, username: user.username, email: user.email }
