@@ -39,6 +39,18 @@ usable until their 15-minute expiry; use a server-side session or revocation lis
 if immediate token invalidation becomes an MVP requirement. The response uses the
 same `{ success, message, data }` shape as login.
 
+### `POST /api/auth/register`
+
+Request JSON: `{"username":"person", "email":"person@example.com", "password":"..."}`.
+
+- Returns `400` when either email, password, or username are missing or has the wrong type
+- Returns `409` response when attempting to register with the same username or email more than once
+- On success, returns `201` with `{success, message, data: {token, expiresIn, user}}`
+- The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
+- The response never includes the password hash.
+
+The register query inserts values into the `id`, `username`, `email`, and `passwordHash` columns in the `users` PostgreSQL table. Emails are normalized to lowercase and passwords are hashed using bcrypt. A UUID is generated when inserting a new entry into the table.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 
@@ -53,6 +65,7 @@ The backend API is responsible for:
 - Enforcing security and access control
 
 The backend **must not**:
+
 - Render UI
 - Trust client input
 - Expose sensitive information
@@ -62,9 +75,11 @@ The backend **must not**:
 ### 1️⃣ Separate Routes from Controllers
 
 **Routes**
+
 - Define the URL and HTTP method
 
 **Controllers**
+
 - Contain the logic for handling requests
 
 This separation keeps code readable and scalable.
@@ -72,6 +87,7 @@ This separation keeps code readable and scalable.
 ### 2️⃣ One Responsibility per File
 
 If a file:
+
 - defines routes
 - validates data
 - accesses the database
@@ -100,6 +116,7 @@ const getItems = async (req, res, next) => {
 ### 4️⃣ Never Trust Client Input
 
 All data coming from:
+
 - request bodies
 - query params
 - URL params
@@ -124,12 +141,13 @@ module.exports = (err, req, res, next) => {
   console.error(err.stack);
 
   res.status(err.status || 500).json({
-    message: err.message || 'Server error'
+    message: err.message || "Server error"
   });
 };
 ```
 
 Benefits:
+
 - consistent responses
 - easier debugging
 - cleaner controllers
@@ -139,11 +157,13 @@ Benefits:
 ### 7️⃣ Never Leak Internal Errors
 
 ❌ Bad:
+
 ```json
 { "error": "Cannot read property 'map' of undefined" }
 ```
 
 ✅ Good:
+
 ```json
 { "message": "Something went wrong" }
 ```
@@ -155,6 +175,7 @@ Log details on the server, not in API responses.
 ### 8️⃣ Use Security Middleware
 
 Recommended packages:
+
 - `helmet` – secure HTTP headers
 - `cors` – control cross-origin access
 - `express-rate-limit` – prevent abuse
@@ -171,6 +192,7 @@ These should be applied **globally**.
 ### 🔟 Use Environment Variables for Secrets
 
 Examples:
+
 - database URLs
 - JWT secrets
 - API keys
@@ -192,6 +214,7 @@ Never commit `.env` files to Git.
 ### 1️⃣2️⃣ Keep API Response Shapes Consistent
 
 Example success response:
+
 ```json
 {
   "success": true,
@@ -200,6 +223,7 @@ Example success response:
 ```
 
 Example error response:
+
 ```json
 {
   "success": false,
@@ -220,6 +244,7 @@ Consistency makes frontend development easier.
 > The backend is the **source of truth** for data, rules, and security.
 
 Build APIs assuming:
+
 - clients can be buggy
 - clients can be malicious
 - future developers will read your code
