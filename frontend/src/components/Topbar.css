@@ -1,19 +1,21 @@
 .cad-header {
-  height: 68px;
-  background-color: var(--bg-app);
-  border-bottom: 1px solid var(--bg-border);
+  min-height: 68px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 1.5rem;
-  box-sizing: border-box;
   position: relative;
+  gap: 16px;
+  padding: 8px 1.5%;
+  background-color: var(--bg-app);
+  border-bottom: 1px solid var(--bg-border);
+  box-sizing: border-box;
 }
 
 .header-left-zone {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .brand-group {
@@ -25,8 +27,7 @@
 
 .logo-img {
   height: 40px;            
-  width: auto;             
-  object-fit: contain;     
+  width: auto;                
   display: block;
 }
 
@@ -34,6 +35,7 @@
   font-weight: 700;
   font-size: 1.2rem;
   letter-spacing: -0.2px;
+  white-space: nowrap;
 }
 
 
@@ -41,34 +43,37 @@
   width: 1px;
   height: 28px; 
   background-color: var(--bg-border);
+  flex-shrink: 0;
 }
 
 .project-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .project-title {
   font-weight: 600;
   font-size: 0.95rem;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.save-timestamp {
+/* .save-timestamp {
   font-size: 0.75rem;
   color: #10b981; 
   margin-top: 2px;
-}
+} */
 
 .header-center-zone {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   position: absolute;
   left: 50%;
-  transform: translateX(-50%); 
+  transform: translateX(-50%);
 }
 
 .action-btn {
@@ -84,6 +89,7 @@
   color: var(--text-main);
   font-size: 0.85rem;
   font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -94,8 +100,7 @@
 }
 
 .header-right-zone {
-  display: flex;
-  align-items: center;
+  flex-shrink: 0;
 }
 
 .header-right-zone .export-stl-btn {
@@ -110,4 +115,47 @@
 .header-right-zone .export-stl-btn:hover {
   background-color: #025a8b;
   border-color: #014c76;
+}
+
+
+@media (max-width: 950px) {
+  .cad-header {
+    flex-wrap: wrap;
+  }
+
+  .header-left-zone {
+    flex: 1 1 100%;
+  }
+
+  .header-center-zone {
+    position: static;
+    transform: none;
+    flex: 1 1 auto;
+  }
+
+}
+   
+
+@media (max-width: 480px) {
+  .cad-header {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .header-left-zone {
+    gap: 8px;
+  }
+
+  .header-center-zone {
+    gap: 8px;
+  }
+
+  .action-btn {
+    min-width: 0;
+    padding: 6px 10px;
+  }
+
+  .header-right-zone .export-stl-btn {
+    padding: 8px 12px;
+  }
 }

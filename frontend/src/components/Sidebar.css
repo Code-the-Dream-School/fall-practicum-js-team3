@@ -7,6 +7,10 @@
   flex-direction: column;
   gap: 1.5rem;
   box-sizing: border-box;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
 }
 
 .section-category {
@@ -97,6 +101,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .sidebar-color-section h3 {
