@@ -24,7 +24,7 @@ export const validateLoginBody = (
     email.trim().length > 254 ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
     password.length === 0 ||
-    password.length > 128
+    Buffer.byteLength(password, 'utf8') > 72
   ) {
     res.status(400).json({ success: false, message: 'Provide a valid email and password.' });
     return;

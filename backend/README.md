@@ -9,6 +9,7 @@ The auth router is mounted at `/api/auth`.
 Request JSON: `{ "email": "person@example.com", "password": "..." }`.
 
 - Returns `400` when email or password is missing or has the wrong type.
+- Passwords must be at most 72 UTF-8 bytes because bcrypt truncates longer values.
 - Returns the same `401` response for an unknown email and an incorrect password.
 - On success, returns `200` with `{ success, message, data: { token, expiresIn, user } }`.
 - The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
@@ -20,6 +21,7 @@ The login query expects PostgreSQL `users` columns `id`, `username`, `email`, an
 Because this field uses camel case in PostgreSQL, SQL must quote it as `"passwordHash"`.
 The `POSTGRES_URI`
 and a strong `JWT_SECRET` (at least 32 characters) must be set in the backend environment.
+Generate a unique secret for each environment; the value in `.env.example` is a placeholder.
 Set `CLIENT_ORIGIN` to the frontend origin; multiple origins can be comma-separated.
 
 ### PostgreSQL setup for authentication
