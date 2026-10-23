@@ -45,32 +45,40 @@ TEAM3-12-user-login  →  dev  →  main
 
 **Get your branch name from the Jira ticket.** Jira builds it for you, so the ticket number is always in it and the name always matches the ticket.
 
-1. Open your ticket in Jira.
-2. Open the **Development** dropdown and click **Create branch**.
-3. Copy the command Jira shows. It looks like this (your name will differ):
-
-```
-git checkout -b TEAM3-30-update-the-repo-about-section
-```
-
-4. Do not run it yet. First switch to an up-to-date `dev` (see section 3: [Working on a Ticket](#3-working-on-a-ticket)), then paste the command. If Jira asks which branch to start from, choose `dev`, never `main`.
-
 Do not rename or invent your own branch name. No ticket yet? Ask the team lead to create one first: every branch needs a ticket.
 
 Every ticket follows the same steps, whatever its type (feature, bug, hotfix, chore, docs).
 
 ## 3. Working on a Ticket
 
-### Start
+### Update your local `dev` branch with the latest changes from `origin/dev`.
 
-1. In Jira, assign the ticket to yourself and move it to **In Progress**.
-2. Using the name you copied from Jira (see section 2: [Branch Names](#2-branch-names)), create your branch from the latest `dev`:
+1. In your terminal/shell window run the following
 
-```
-git switch dev
-git pull
-git switch -c TEAM3-12-user-login    # the name you copied from Jira
-```
+   ```
+    git switch dev
+    git pull
+   ```
+
+### Create branch from Jira ticket
+
+1. In [Jira](https://fall-practicum-team3.atlassian.net/jira/software/projects/TEAM3/boards/1/backlog?epics=visible), open the Task ticket.
+2. Assign the to yourself and move it to **In Progress**.
+3. Scroll down to the `Development` dropdown menu (as seen on the right of the screen). See screenshot:
+
+   <img src="./images/Development Drop-down Menu.png" width="20%" height="20%">
+
+4. Select the `Create branch` button. See same screenshot above.
+
+5. A window will pop up with a Git command ready to be copied. See screenshot:
+
+   <img src="./images/Create%20branch%20pop-up%20window.png" width="20%" height="20%">
+
+   Copy the Git command.
+
+6. Paste the Git command into your terminal/shell window and run it.
+
+You're now ready to start working on the ticket.
 
 ### Commit and push
 
@@ -79,7 +87,7 @@ Start each commit message with the ticket key, then say what changed:
 ```
 git add .
 git commit -m "TEAM3-12 Add login form"
-git push -u origin TEAM3-12-user-login
+git push -u origin <name-of-branch-copied-from-Jira-in-step-5-above>
 ```
 
 After the first push, plain `git push` is enough. Commit and push at logical stopping points, not just at the end of the day.
@@ -94,7 +102,7 @@ You do not need to update every morning. Update your branch when:
 - GitHub says your PR has conflicts
 
 ```
-git switch TEAM3-12-user-login
+git switch <name-of-branch-copied-from-Jira-in-step-5-above>
 git fetch origin
 git merge origin/dev
 ```
@@ -272,12 +280,12 @@ Release when `dev` is stable and passing tests, and the team agrees (usually at 
 ## 10. Quick Reference
 
 ```
-git switch dev && git pull                    # update dev
-git switch -c TEAM3-12-user-login             # new branch (name copied from Jira)
-git add . && git commit -m "TEAM3-12 message" # save work
-git push -u origin TEAM3-12-user-login        # first push
-git fetch origin && git merge origin/dev      # update my branch
-git status                                    # where am I?
+git switch dev && git pull                                                  # update dev
+git switch -c <name-of-branch-copied-from-Jira-in-step-5-above>             # new branch (name copied from Jira)
+git add . && git commit -m "TEAM3-12 message"                               # save work
+git push -u origin <name-of-branch-copied-from-Jira-in-step-5-above>        # first push
+git fetch origin && git merge origin/dev                                    # update my branch
+git status                                                                  # where am I?
 ```
 
 **Never**
