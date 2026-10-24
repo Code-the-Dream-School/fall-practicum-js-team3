@@ -1,0 +1,34 @@
+name: Assign PR Author
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign-author:
+    name: Assign PR to its author
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Assign author
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const author = context.payload.pull_request.user.login;
+
+            if (context.payload.pull_request.user.type === 'Bot') {
+              core.info(`Skipping bot-authored PR #${context.issue.number} by ${author}`);
+              return;
+            }
+
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: [author]
+            });
+
+            core.info(`Assigned PR #${context.issue.number} to ${author}`);
