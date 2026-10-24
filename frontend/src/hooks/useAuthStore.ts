@@ -63,7 +63,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = await fetchCurrentUser(token, signal)
       set({ user, isLoading: false })
     } catch {
-      // The request was cancelled because the component went away: leave the state alone
+      // The request was cancelled because the component went away
+      // isLoading stays true on purpose: the startup effect in AppRoutes runs loadUser
+      // again (for example in React StrictMode), and that new call sets isLoading to false.
       if (signal?.aborted) return
       // The token is invalid or expired: forget it
       localStorage.removeItem(TOKEN_STORAGE_KEY)
