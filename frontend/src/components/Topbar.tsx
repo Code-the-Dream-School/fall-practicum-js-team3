@@ -1,6 +1,11 @@
 import './Topbar.css';
 
-function Topbar() {
+interface TopbarProps {
+  onSave: () => void;
+  saveStatus: string;
+}
+
+function Topbar({ onSave, saveStatus }: TopbarProps) {
 
   return (
     <header className="cad-header">
@@ -18,8 +23,25 @@ function Topbar() {
       </div>
 
         <div className="header-center-zone">
-          <button className="action-btn">Save</button>
-          <button className="action-btn">Load</button>
+          <div className="header-actions">
+            <button
+              className="action-btn"
+              type="button"
+              aria-label="Save project to this browser"
+              onClick={onSave}
+            >
+              Save
+            </button>
+            <button className="action-btn" type="button">Load</button>
+          </div>
+          <p
+            className={`save-status${saveStatus ? ' is-visible' : ''}${saveStatus === 'Unsaved changes.' ? ' is-unsaved' : ''}`}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {saveStatus}
+          </p>
         </div>
 
         <div className="header-right-zone">
