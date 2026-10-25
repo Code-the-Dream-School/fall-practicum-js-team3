@@ -12,12 +12,24 @@ async function startMockApiIfEnabled() {
   await worker.start()
 }
 
-startMockApiIfEnabled().then(() => {
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter> 
-    <AppRoutes />              
-    </BrowserRouter> 
-  </StrictMode>,
-)
+async function main() {
+  const rootElement = document.getElementById('root');
+
+  if (!rootElement) {
+    throw new Error('Root element not found');
+  }
+ 
+  await startMockApiIfEnabled()
+  
+  createRoot(rootElement).render(
+    <StrictMode>
+      <BrowserRouter> 
+        <AppRoutes />              
+      </BrowserRouter> 
+    </StrictMode>,
+  )
+}
+
+main().catch((error) => {
+  console.error('Failed to start the application:', error)
 })
