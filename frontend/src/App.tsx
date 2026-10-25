@@ -16,6 +16,7 @@ interface Block {
   type: 'cube' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'torus';
   color: string;
   position: { x: number; y: number; z: number };
+  scale: number;
 }
 
 const SHAPE_COLORS: Record<BlockType, string> = {
@@ -71,6 +72,7 @@ function App() {
       type: type,
       color: SHAPE_COLORS[type], 
       position: { x: findFreeSpawnX(blocks), y: 0, z: 0 },
+      scale: 1,
     };
     
     setBlocks(currentBlocks => [...currentBlocks, newBlock]);

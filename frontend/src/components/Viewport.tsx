@@ -17,6 +17,7 @@ interface Block {
   type: BlockType;
   color: string;
   position: { x: number; y: number; z: number };
+  scale: number;
 }
 
 interface ViewportProps {
@@ -115,7 +116,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
       const draggedMesh = transformControls.object;
       if (draggedMesh instanceof THREE.Mesh) {
         // Undo the "bottom of the shape sits on the grid" offset used when meshes are built.
-        const bottom = draggedMesh.geometry.boundingBox?.min.y ?? 0;
+        const bottom = (draggedMesh.geometry.boundingBox?.min.y ?? 0)* draggedMesh.scale.y;
 
         onMoveBlock(draggedMesh.userData.blockId as number, {
           x: draggedMesh.position.x,
@@ -264,9 +265,10 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
 
       const bottom = geometry.boundingBox?.min.y ?? 0;
 
+      mesh.scale.setScalar(block.scale);
       mesh.position.set(
         block.position.x,
-        block.position.y - bottom,
+        block.position.y - bottom * block.scale,
         block.position.z
       );
 
