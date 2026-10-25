@@ -199,11 +199,14 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
     blocks.forEach((block) => {
       const isSelected = block.id === selectedBlockId;
 
+      const shapeColor = new THREE.Color(block.color);
+      if (isSelected) {
+        shapeColor.lerp(new THREE.Color('#ffffff'), 0.25);
+      }
+
       const material = new THREE.MeshStandardMaterial({
-        color: block.color,
+        color: shapeColor,
         roughness: 0.3,
-        emissive: isSelected ? '#3b82f6' : '#000000',
-        emissiveIntensity: isSelected ? 0.35 : 0,
       });
 
       const mesh = new THREE.Mesh(
