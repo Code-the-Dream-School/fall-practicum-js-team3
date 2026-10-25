@@ -31,7 +31,7 @@ export const logoutUser = (_req: Request, res: Response): void => {
     data: {}
   });
 };
-
+console.log("Dummy comment to illustrate that you can suggest a code change right in the code base.")
 export const registerUser = async (
   req: Request<{}, {}, RegisterBody>,
   res: Response,
