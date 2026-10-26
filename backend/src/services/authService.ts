@@ -5,7 +5,7 @@ import { createAccessToken } from './tokenService';
 
 export interface PublicUser {
   id: string;
-  username: string | null;
+  username: string;
   email: string;
 }
 

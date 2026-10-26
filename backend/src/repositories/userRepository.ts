@@ -4,7 +4,7 @@ const pool = require('../config/db.postgres') as Pool;
 
 export interface AuthUser {
   id: string;
-  username: string | null;
+  username: string;
   email: string;
   password_hash: string;
 }
