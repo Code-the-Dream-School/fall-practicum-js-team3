@@ -16,6 +16,7 @@ interface Block {
   type: 'cube' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'torus';
   color: string;
   position: { x: number; y: number; z: number };
+  scale: number;
 }
 
 const SHAPE_COLORS: Record<BlockType, string> = {
@@ -40,6 +41,10 @@ function findFreeSpawnX(existingBlocks: Block[]): number {
   }
   return x;
 }
+
+// Smallest and largest size a shape can have (1 = original size).
+const MIN_BLOCK_SCALE = 0.2;
+const MAX_BLOCK_SCALE = 5;
 
 function App() {
   const [message, setMessage] = useState<string>('');
@@ -71,6 +76,7 @@ function App() {
       type: type,
       color: SHAPE_COLORS[type], 
       position: { x: findFreeSpawnX(blocks), y: 0, z: 0 },
+      scale: 1,
     };
     
     setBlocks(currentBlocks => [...currentBlocks, newBlock]);
@@ -102,12 +108,25 @@ function App() {
   []
 );
 
+   const handleScaleBlock = useCallback((id: number, factor: number) => {
+     setBlocks((currentBlocks) =>
+       currentBlocks.map((block) =>
+         block.id === id
+           ? {
+               ...block,
+               scale: Math.min(MAX_BLOCK_SCALE, Math.max(MIN_BLOCK_SCALE, block.scale * factor)),
+             }
+           : block
+       )
+     );
+   }, []);
+
   return (
     <div className="cad-container">
       <Topbar />
       <div className="cad-workspace">
         <Sidebar onAddBlock={handleAddBlock} onUpdateColor={handleUpdateBlockColor} />
-        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={handleMoveBlock}/>
+        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={handleMoveBlock} onScaleBlock={handleScaleBlock} />
       </div>
     </div>
   );

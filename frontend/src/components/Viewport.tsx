@@ -17,6 +17,7 @@ interface Block {
   type: BlockType;
   color: string;
   position: { x: number; y: number; z: number };
+  scale: number;
 }
 
 interface ViewportProps {
@@ -26,6 +27,7 @@ interface ViewportProps {
   selectedBlockId: number | null;     
   onSelectBlock: (id: number | null) => void;
   onMoveBlock: (id: number, position: Block['position']) => void;
+  onScaleBlock: (id: number, factor: number) => void;
 }
 
 // Create the correct geometry for each shape.
@@ -48,7 +50,7 @@ function createGeometry(type: BlockType): THREE.BufferGeometry {
     }
   }
 
-function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMoveBlock}: ViewportProps) {
+function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMoveBlock, onScaleBlock}: ViewportProps) {
   // Create an anchor point reference for our 3D container element
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -115,7 +117,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
       const draggedMesh = transformControls.object;
       if (draggedMesh instanceof THREE.Mesh) {
         // Undo the "bottom of the shape sits on the grid" offset used when meshes are built.
-        const bottom = draggedMesh.geometry.boundingBox?.min.y ?? 0;
+        const bottom = (draggedMesh.geometry.boundingBox?.min.y ?? 0) * draggedMesh.scale.y;
 
         onMoveBlock(draggedMesh.userData.blockId as number, {
           x: draggedMesh.position.x,
@@ -169,6 +171,26 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
      
     renderer.domElement.addEventListener('click', handleCanvasClick);
 
+    // Shift + mouse wheel makes the selected shape bigger or smaller.
+    const handleWheel = (event: WheelEvent) => {
+      if (!event.shiftKey) return; // normal wheel: the camera zooms
+
+      const selectedMesh = transformControls.object;
+      if (!selectedMesh) return; // nothing selected: let the camera zoom
+
+      // Stop the camera zoom and the page scroll for this event.
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Some systems turn Shift + wheel into a sideways scroll (deltaX).
+      const delta = event.deltaY !== 0 ? event.deltaY : event.deltaX;
+      const factor = Math.exp(-delta * 0.001); // wheel away from you (negative) = bigger
+
+      onScaleBlock(selectedMesh.userData.blockId as number, factor);
+    };
+
+    container.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+    
     // Responsive Engine 
     const resizeObserver = new ResizeObserver(([entry]) => {
       if (!entry) return;
@@ -197,6 +219,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       renderer.domElement.removeEventListener('click', handleCanvasClick);
+      container.removeEventListener('wheel', handleWheel, { capture: true });
       
       
       meshes.forEach((mesh) => {
@@ -224,7 +247,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
 
       sceneRef.current = null;
     };
-  }, [onSelectBlock, onMoveBlock]);
+  }, [onSelectBlock, onMoveBlock, onScaleBlock]);
 
   // Add, update, or remove 3D blocks when the state changes.
   useEffect(() => {
@@ -264,9 +287,10 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
 
       const bottom = geometry.boundingBox?.min.y ?? 0;
 
+      mesh.scale.setScalar(block.scale);
       mesh.position.set(
         block.position.x,
-        block.position.y - bottom,
+        block.position.y - bottom * block.scale,
         block.position.z
       );
 
