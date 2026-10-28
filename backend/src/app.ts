@@ -28,6 +28,11 @@ app.use(rateLimit({
 // Auth routes.
 app.use('/api/auth', authRoutes);
 
+// Preserve the canvas frontend's existing API request.
+app.get('/api/hello', (_req: Request, res: Response) => {
+  res.status(200).json({ message: 'Hello World' });
+});
+
 // Health check.
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ success: true, message: 'Server is running' });

@@ -11,9 +11,9 @@ Request JSON: `{ "email": "person@example.com", "password": "..." }`.
 - Returns `400` when email or password is missing or has the wrong type.
 - Passwords must be at most 72 UTF-8 bytes because bcrypt truncates longer values.
 - Returns the same `401` response for an unknown email and an incorrect password.
-- On success, returns `200` with `{ success, message, data: { token, expiresIn, user } }`.
+- On success, returns `200` with `{ "token": "...", "user": { "id": "...", "name": "...", "email": "..." } }`.
 - The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
-- The response never includes the password hash.
+- The response never includes the password hash. The API's `name` field maps to the database's `username` column.
 
 The login query expects PostgreSQL `users` columns `id`, `username`, `email`, and
 `passwordHash`, matching the shared DBML. Registration must save a bcrypt hash in

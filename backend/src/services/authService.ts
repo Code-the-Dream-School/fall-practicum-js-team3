@@ -5,7 +5,7 @@ import { createAccessToken } from './tokenService';
 
 export interface PublicUser {
   id: string;
-  username: string;
+  name: string;
   email: string;
 }
 
@@ -22,6 +22,6 @@ export const authenticateUser = async (email: string, password: string): Promise
 
   return {
     token: createAccessToken(user),
-    user: { id: user.id, username: user.username, email: user.email },
+    user: { id: user.id, name: user.username, email: user.email },
   };
 };

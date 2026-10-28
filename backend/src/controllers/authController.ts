@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { LoginBody } from '../middleware/authValidation';
-import { ACCESS_TOKEN_TTL } from '../services/tokenService';
 import { authenticateUser } from '../services/authService';
 
 export const loginUser = async (
@@ -12,11 +11,7 @@ export const loginUser = async (
     const { email, password } = req.body;
     const auth = await authenticateUser(email, password);
 
-    res.status(200).json({
-      success: true,
-      message: 'Logged in successfully.',
-      data: { ...auth, expiresIn: ACCESS_TOKEN_TTL },
-    });
+    res.status(200).json(auth);
   } catch (error) {
     next(error);
   }
