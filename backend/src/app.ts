@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { ApiError } from './errors/ApiError';
 import authRoutes from './routes/authRoutes';
+import projectRoutes from './routes/projectRoutes';
 
 const app: Application = express();
 
@@ -15,7 +16,7 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
 // Shared security and request middleware.
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '128kb' }));
 app.use(morgan('dev'));
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -27,6 +28,7 @@ app.use(rateLimit({
 
 // Auth routes.
 app.use('/api/auth', authRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Preserve the canvas frontend's existing API request.
 app.get('/api/hello', (_req: Request, res: Response) => {

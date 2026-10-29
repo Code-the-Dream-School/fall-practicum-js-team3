@@ -41,6 +41,17 @@ usable until their 15-minute expiry; use a server-side session or revocation lis
 if immediate token invalidation becomes an MVP requirement. The response uses the
 same `{ success, message, data }` shape as login.
 
+## Project saving API
+
+Project endpoints require `Authorization: Bearer <token>`.
+
+Project documents are stored in MongoDB using the published `projects` schema: MongoDB `_id`, UUID `userId`, `projectName`, `difficulty`, `sceneData`, and `lastSaved`. Each `sceneData` item follows `sceneData_Structure` (`shapeId`, `type`, `position`, `rotation`, `colorHex`, and optional `dimensions` and `groupId`).
+
+- `POST /api/projects` accepts `{ "projectName": "My project", "difficulty": "Builder" }` and creates a project owned by the authenticated user.
+- `PUT /api/projects/:projectId/sceneData` accepts `{ "sceneData": [...] }` and replaces the scene atomically, updating `lastSaved`.
+- The project ID is a MongoDB ObjectId. Only the authenticated owner can update the project. Scene data is limited to 500 items.
+- Set `MONGO_URI` in `backend/.env` before starting the server. Replace `YOUR_MONGODB_USER`, `YOUR_MONGODB_PASSWORD`, and `YOUR_MONGODB_HOST` in the `.env.example` URI with your MongoDB connection details. Keep real credentials out of Git. PostgreSQL remains the user/authentication database; MongoDB stores projects and scene data.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 
