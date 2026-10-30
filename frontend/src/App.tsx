@@ -28,14 +28,34 @@ const SHAPE_COLORS: Record<BlockType, string> = {
   torus: '#f97316',
 };
 
+// How far each shape reaches from its center sideways (x and z) at scale 1.
+// Keep these in sync with the sizes in createGeometry (Viewport.tsx).
+const SHAPE_HALF_WIDTH: Record<BlockType, number> = {
+  cube: 0.5,
+  sphere: 0.6,
+  cylinder: 0.5,
+  cone: 0.6,
+  pyramid: 0.7,
+  torus: 0.55,
+};
+
+// Empty space to leave between two shapes.
+const SPAWN_GAP = 0.5;
+
 // Find the first empty spot in the row, so a new shape never lands inside another one.
-function findFreeSpawnX(existingBlocks: Block[]): number {
+function findFreeSpawnX(existingBlocks: Block[], newType: BlockType): number {
   let x = 0;
   while (
     existingBlocks.some(
-      (block) =>
-        Math.abs(block.position.x - x) < 1.5 && Math.abs(block.position.z) < 1.5
-    )
+      (block) => {
+      // The closest the two centers may be: both half-widths (scaled) plus a gap.
+      const minDistance =
+        SHAPE_HALF_WIDTH[block.type] * block.scale + SHAPE_HALF_WIDTH[newType] + SPAWN_GAP;
+      return (
+        Math.abs(block.position.x - x) < minDistance &&
+        Math.abs(block.position.z) < minDistance
+      );
+    })
   ) {
     x += 0.5;
   }
@@ -75,7 +95,7 @@ function App() {
       id: Date.now(),
       type: type,
       color: SHAPE_COLORS[type], 
-      position: { x: findFreeSpawnX(blocks), y: 0, z: 0 },
+      position: { x: findFreeSpawnX(blocks, type), y: 0, z: 0 },
       scale: 1,
     };
     
