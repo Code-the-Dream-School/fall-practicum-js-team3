@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import './Viewport.css';
 
 type BlockType =
@@ -16,6 +17,7 @@ interface Block {
   type: BlockType;
   color: string;
   position: { x: number; y: number; z: number };
+  scale: number;
 }
 
 interface ViewportProps {
@@ -24,7 +26,8 @@ interface ViewportProps {
   blocks: Block[];                    
   selectedBlockId: number | null;     
   onSelectBlock: (id: number | null) => void;
-  
+  onMoveBlock: (id: number, position: Block['position']) => void;
+  onScaleBlock: (id: number, factor: number) => void;
 }
 
 // Create the correct geometry for each shape.
@@ -47,11 +50,12 @@ function createGeometry(type: BlockType): THREE.BufferGeometry {
     }
   }
 
-function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: ViewportProps) {
+function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMoveBlock, onScaleBlock}: ViewportProps) {
   // Create an anchor point reference for our 3D container element
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const meshesRef = useRef<Map<number, THREE.Mesh>>(new Map());
+  const transformControlsRef = useRef<TransformControls | null>(null);
   const [webglError, setWebglError] = useState(false);
 
   // Set up the 3D workspace.
@@ -95,6 +99,43 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
     controls.dampingFactor = 0.05;
     controls.maxPolarAngle = Math.PI / 2 - 0.05; 
 
+    const transformControls = new TransformControls(camera, renderer.domElement);
+    transformControls.setMode('translate');
+
+    // True from the start of a gizmo drag until just after its mouse release.
+    let isGizmoInUse = false;
+
+    transformControls.addEventListener('dragging-changed', (event) => {
+      controls.enabled = !event.value; // TEAM3-102: pause the camera while dragging
+
+      if (event.value) {
+        isGizmoInUse = true;
+        return;
+      }
+
+      // The drag just ended: save the final position in the app state.
+      const draggedMesh = transformControls.object;
+      if (draggedMesh instanceof THREE.Mesh) {
+        // Undo the "bottom of the shape sits on the grid" offset used when meshes are built.
+        const bottom = (draggedMesh.geometry.boundingBox?.min.y ?? 0) * draggedMesh.scale.y;
+
+        onMoveBlock(draggedMesh.userData.blockId as number, {
+          x: draggedMesh.position.x,
+          y: Math.max(0, draggedMesh.position.y + bottom), // never below the grid
+          z: draggedMesh.position.z,
+        });
+      }
+
+      // The click event arrives right after the release, so clear the flag a moment later.
+      setTimeout(() => {
+        isGizmoInUse = false;
+      }, 0);
+    });
+
+    const transformHelper = transformControls.getHelper();
+    scene.add(transformHelper);
+    transformControlsRef.current = transformControls;
+
     scene.add(new THREE.AmbientLight(0xffffff, 0.6));
   
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -110,6 +151,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
     const mouse = new THREE.Vector2();
 
     const handleCanvasClick = (event: MouseEvent) => {
+      if (isGizmoInUse) return;
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -129,6 +171,26 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
      
     renderer.domElement.addEventListener('click', handleCanvasClick);
 
+    // Shift + mouse wheel makes the selected shape bigger or smaller.
+    const handleWheel = (event: WheelEvent) => {
+      if (!event.shiftKey) return; // normal wheel: the camera zooms
+
+      const selectedMesh = transformControls.object;
+      if (!selectedMesh) return; // nothing selected: let the camera zoom
+
+      // Stop the camera zoom and the page scroll for this event.
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Some systems turn Shift + wheel into a sideways scroll (deltaX).
+      const delta = event.deltaY !== 0 ? event.deltaY : event.deltaX;
+      const factor = Math.exp(-delta * 0.001); // wheel away from you (negative) = bigger
+
+      onScaleBlock(selectedMesh.userData.blockId as number, factor);
+    };
+
+    container.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+    
     // Responsive Engine 
     const resizeObserver = new ResizeObserver(([entry]) => {
       if (!entry) return;
@@ -157,6 +219,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       renderer.domElement.removeEventListener('click', handleCanvasClick);
+      container.removeEventListener('wheel', handleWheel, { capture: true });
       
       
       meshes.forEach((mesh) => {
@@ -171,6 +234,10 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
       (Array.isArray(grid.material) ? grid.material : [grid.material])
         .forEach((material) => material.dispose());
 
+      scene.remove(transformHelper);
+      transformControls.dispose();
+      transformControlsRef.current = null;
+
       controls.dispose();
       renderer.dispose();
 
@@ -180,12 +247,15 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
 
       sceneRef.current = null;
     };
-  }, [onSelectBlock]);
+  }, [onSelectBlock, onMoveBlock, onScaleBlock]);
 
   // Add, update, or remove 3D blocks when the state changes.
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
+
+    const transformControls = transformControlsRef.current;
+    transformControls?.detach();
 
     // Remove the previous meshes and release their resources.
     meshesRef.current.forEach((mesh) => {
@@ -217,9 +287,10 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
 
       const bottom = geometry.boundingBox?.min.y ?? 0;
 
+      mesh.scale.setScalar(block.scale);
       mesh.position.set(
         block.position.x,
-        block.position.y - bottom,
+        block.position.y - bottom * block.scale,
         block.position.z
       );
 
@@ -228,6 +299,12 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock}: Vie
       scene.add(mesh);
       meshesRef.current.set(block.id, mesh);
     });
+
+    const selectedMesh =
+      selectedBlockId !== null ? meshesRef.current.get(selectedBlockId) : undefined;
+    if (selectedMesh) {
+      transformControls?.attach(selectedMesh);
+    }
   }, [blocks, selectedBlockId]);
     
   
