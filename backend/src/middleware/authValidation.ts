@@ -12,7 +12,12 @@ export const validateLoginBody = (
 ): void => {
   const body: unknown = req.body;
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    res.status(400).json({ success: false, message: 'A JSON object with email and password is required.' });
+    res.status(422).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'A JSON object with email and password is required.',
+      },
+    });
     return;
   }
 
@@ -26,7 +31,12 @@ export const validateLoginBody = (
     password.length === 0 ||
     Buffer.byteLength(password, 'utf8') > 72
   ) {
-    res.status(400).json({ success: false, message: 'Provide a valid email and password.' });
+    res.status(422).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Provide a valid email and password.',
+      },
+    });
     return;
   }
 

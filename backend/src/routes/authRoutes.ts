@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { loginUser, logoutUser } from '../controllers/authController';
+import { getCurrentUser, loginUser, logoutUser } from '../controllers/authController';
 import { validateLoginBody } from '../middleware/authValidation';
+import { requireAuth } from '../middleware/requireAuth';
 
 const router = Router();
 
@@ -8,6 +9,9 @@ const router = Router();
 router.post('/login', validateLoginBody, loginUser);
 
 // POST /api/auth/logout
-router.post('/logout', logoutUser);
+router.post('/logout', requireAuth, logoutUser);
+
+// GET /api/auth/user
+router.get('/user', requireAuth, getCurrentUser);
 
 export default router;

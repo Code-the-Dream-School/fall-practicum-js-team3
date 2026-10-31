@@ -21,7 +21,9 @@ app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   handler: (_req, res) => {
-    res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+    res.status(429).json({
+      error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+    });
   },
 }));
 
@@ -47,7 +49,9 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
       : 500;
 
   if (err instanceof ApiError) {
-    res.status(err.statusCode).json({ success: false, message: err.message });
+    res.status(err.statusCode).json({
+      error: { code: err.code, message: err.message },
+    });
     return;
   }
 
@@ -59,10 +63,20 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
       : statusCode < 500
         ? 'Request could not be processed.'
         : 'Server error.';
+  const code = statusCode === 400
+    ? 'INVALID_REQUEST'
+    : statusCode === 413
+      ? 'PAYLOAD_TOO_LARGE'
+      : statusCode === 415
+        ? 'UNSUPPORTED_MEDIA_TYPE'
+        : statusCode === 429
+          ? 'RATE_LIMITED'
+          : statusCode < 500
+            ? 'REQUEST_REJECTED'
+            : 'INTERNAL_ERROR';
 
   res.status(statusCode).json({
-    success: false,
-    message,
+    error: { code, message },
   });
 });
 

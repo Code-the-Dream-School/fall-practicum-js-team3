@@ -8,11 +8,12 @@ The auth router is mounted at `/api/auth`.
 
 Request JSON: `{ "email": "person@example.com", "password": "..." }`.
 
-- Returns `400` when email or password is missing or has the wrong type.
+- Returns `422` with `VALIDATION_ERROR` when email or password is missing, empty, or invalid.
 - Passwords must be at most 72 UTF-8 bytes because bcrypt truncates longer values.
-- Returns the same `401` response for an unknown email and an incorrect password.
+- Returns `401` with `{ "error": { "code": "INVALID_CREDENTIALS", "message": "Email or password is incorrect." } }` for both an unknown email and an incorrect password.
+- Errors use `{ "error": { "code", "message" } }`; clients should branch on the stable code.
 - On success, returns `200` with `{ "token": "...", "user": { "id": "...", "name": "...", "email": "..." } }`.
-- The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
+- The access token is a 15-minute JWT. The frontend stores it in `localStorage` and sends it on protected requests as `Authorization: Bearer <token>`.
 - The response never includes the password hash. The API's `name` field maps to the database's `username` column.
 
 The login query expects PostgreSQL `users` columns `id`, `username`, `email`, and
@@ -35,11 +36,17 @@ hash in the quoted `"passwordHash"` column, and store email in lowercase.
 
 ### `POST /api/auth/logout`
 
-Returns `200` to confirm logout. Because access tokens are stateless bearer JWTs,
-the client must delete its token when logging out. Tokens already issued remain
-usable until their 15-minute expiry; use a server-side session or revocation list
-if immediate token invalidation becomes an MVP requirement. The response uses the
-same `{ success, message, data }` shape as login.
+Requires a valid bearer token and returns `204 No Content`. Missing or invalid tokens
+return `401` with error code `UNAUTHENTICATED`. Because access tokens are stateless
+bearer JWTs, the client must delete its token when logging out. Tokens already issued
+remain usable until their 15-minute expiry; use a server-side session or revocation
+list if immediate token invalidation becomes an MVP requirement.
+
+### `GET /api/auth/user`
+
+Requires a valid bearer token and returns `200` with `{ "id": "...", "name": "...", "email": "..." }`.
+The password hash is never returned. Missing or invalid tokens return `401` with error
+code `UNAUTHENTICATED`.
 
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
