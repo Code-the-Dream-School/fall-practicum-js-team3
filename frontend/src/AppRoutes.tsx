@@ -6,14 +6,14 @@
   When the app starts, it also checks whether a saved login (token) is still valid,
   so a user who reloads the page stays logged in.
 */
-import { useEffect } from "react";
-import { Route, Routes } from "react-router-dom";
-import App from "./App.tsx";
-import Header from "./components/Header.tsx";
-import { useAuthStore } from "./hooks/useAuthStore.ts";
-import LoginPage from "./pages/LoginPage.tsx";
-import RegisterPage from "./pages/RegisterPage.tsx";
-import ProtectedRoute from "./components/auth/ProtectedRoute.tsx";
+import { useEffect } from 'react';
+import { Route, Routes } from 'react-router-dom';
+import App from './App.tsx';
+import Header from './components/Header.tsx';
+import { useAuthStore } from './hooks/useAuthStore.ts';
+import LoginPage from './pages/LoginPage.tsx';
+import RegisterPage from './pages/RegisterPage.tsx';
+import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
 
 export default function AppRoutes() {
   const loadUser = useAuthStore((state) => state.loadUser);
@@ -29,15 +29,15 @@ export default function AppRoutes() {
       <Header />
       <Routes>
         <Route
-          path="/"
+          path='/'
           element={
             <ProtectedRoute>
               <App />
             </ProtectedRoute>
           }
         />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path='/register' element={<RegisterPage />} />
+        <Route path='/login' element={<LoginPage />} />
       </Routes>
     </>
   );

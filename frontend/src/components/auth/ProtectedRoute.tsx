@@ -1,6 +1,6 @@
-import { useAuthStore } from "../../hooks/useAuthStore.ts";
-import { Navigate } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useAuthStore } from '../../hooks/useAuthStore.ts';
+import { Navigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const user = useAuthStore((state) => state.user);
@@ -19,7 +19,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!user) {
     //redirect to /login
-    return <Navigate to="/login" replace={true} />;
+    return <Navigate to='/login' replace={true} />;
   }
 
   return children;
