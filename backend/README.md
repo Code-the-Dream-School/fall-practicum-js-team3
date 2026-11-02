@@ -1,5 +1,53 @@
 # Backend API Best Practices & Security Guide
 
+## Authentication API contract
+
+The auth router is mounted at `/api/auth`.
+
+### `POST /api/auth/login`
+
+Request JSON: `{ "email": "person@example.com", "password": "..." }`.
+
+- Returns `422` with `VALIDATION_ERROR` when email or password is missing, empty, or invalid.
+- Passwords must be at most 72 UTF-8 bytes because bcrypt truncates longer values.
+- Returns `401` with `{ "error": { "code": "INVALID_CREDENTIALS", "message": "Email or password is incorrect." } }` for both an unknown email and an incorrect password.
+- Errors use `{ "error": { "code", "message" } }`; clients should branch on the stable code.
+- On success, returns `200` with `{ "token": "...", "user": { "id": "...", "name": "...", "email": "..." } }`.
+- The access token is a 15-minute JWT. The frontend stores it in `localStorage` and sends it on protected requests as `Authorization: Bearer <token>`.
+- The response never includes the password hash. The API's `name` field maps to the database's `username` column.
+
+The login query expects PostgreSQL `users` columns `id`, `username`, `email`, and
+`passwordHash`, matching the shared DBML. Registration must save a bcrypt hash in
+`passwordHash` and normalize email to lowercase (the login lookup is case-insensitive).
+Because this field uses camel case in PostgreSQL, SQL must quote it as `"passwordHash"`.
+The `POSTGRES_URI`
+and a strong `JWT_SECRET` (at least 32 characters) must be set in the backend environment.
+Generate a unique secret for each environment; the value in `.env.example` is a placeholder.
+Set `CLIENT_ORIGIN` to the frontend origin; multiple origins can be comma-separated.
+
+### PostgreSQL setup for authentication
+
+The backend uses the existing `pg` connection pool; Prisma is not part of this setup.
+Create or obtain a PostgreSQL database, set its connection string as `POSTGRES_URI`,
+then run `npm run db:setup` from the `backend` directory. This applies
+`src/db/migrations/001_create_users.sql` and creates the `users` table if it does not
+already exist. The registration endpoint should provide the UUID `id`, save the bcrypt
+hash in the quoted `"passwordHash"` column, and store email in lowercase.
+
+### `POST /api/auth/logout`
+
+Requires a valid bearer token and returns `204 No Content`. Missing or invalid tokens
+return `401` with error code `UNAUTHENTICATED`. Because access tokens are stateless
+bearer JWTs, the client must delete its token when logging out. Tokens already issued
+remain usable until their 15-minute expiry; use a server-side session or revocation
+list if immediate token invalidation becomes an MVP requirement.
+
+### `GET /api/auth/user`
+
+Requires a valid bearer token and returns `200` with `{ "id": "...", "name": "...", "email": "..." }`.
+The password hash is never returned. Missing or invalid tokens return `401` with error
+code `UNAUTHENTICATED`.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 

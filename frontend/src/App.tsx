@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import {useCallback, useEffect, useState } from 'react';
 import Topbar from './components/Topbar';
 import Sidebar from './components/Sidebar';
 import Viewport from './components/Viewport';
@@ -16,6 +16,7 @@ interface Block {
   type: 'cube' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'torus';
   color: string;
   position: { x: number; y: number; z: number };
+  scale: number;
 }
 
 const SHAPE_COLORS: Record<BlockType, string> = {
@@ -29,7 +30,7 @@ const SHAPE_COLORS: Record<BlockType, string> = {
 
 const SAVED_PROJECT_KEY = 'blockcad.project.v1';
 
-function isBlock(value: unknown): value is Block {
+function isBlock(value: unknown): value is Omit<Block, 'scale'> & { scale?: number } {
   if (!value || typeof value !== 'object') return false;
 
   const block = value as Partial<Block>;
@@ -37,6 +38,7 @@ function isBlock(value: unknown): value is Block {
   return (
     Number.isSafeInteger(block.id) &&
     ['cube', 'sphere', 'cylinder', 'cone', 'pyramid', 'torus'].includes(String(block.type)) &&
+    (block.scale === undefined || (Number.isFinite(block.scale) && block.scale > 0)) &&
     typeof block.color === 'string' &&
     /^#[\da-f]{6}$/i.test(block.color) &&
     !!position &&
@@ -63,11 +65,29 @@ function readSavedBlocks(): Block[] {
       return [];
     }
 
-    return project.blocks;
+    return project.blocks.map((block) => ({ ...block, scale: block.scale ?? 1 }));
   } catch {
     return [];
   }
 }
+
+// Find the first empty spot in the row, so a new shape never lands inside another one.
+function findFreeSpawnX(existingBlocks: Block[]): number {
+  let x = 0;
+  while (
+    existingBlocks.some(
+      (block) =>
+        Math.abs(block.position.x - x) < 1.5 && Math.abs(block.position.z) < 1.5
+    )
+  ) {
+    x += 0.5;
+  }
+  return x;
+}
+
+// Smallest and largest size a shape can have (1 = original size).
+const MIN_BLOCK_SCALE = 0.2;
+const MAX_BLOCK_SCALE = 5;
 
 function App() {
   const [message, setMessage] = useState<string>('');
@@ -98,8 +118,9 @@ function App() {
     const newBlock: Block = {
       id: Date.now(),
       type: type,
-      color: SHAPE_COLORS[type],
-      position: { x: blocks.length * 1.5, y: 0, z: 0 }, 
+      color: SHAPE_COLORS[type], 
+      position: { x: findFreeSpawnX(blocks), y: 0, z: 0 },
+      scale: 1,
     };
     
     setBlocks(currentBlocks => [...currentBlocks, newBlock]);
@@ -135,12 +156,38 @@ function App() {
     }
   };
 
+  const handleMoveBlock = useCallback(
+  (id: number, newPosition: Block['position']): void => {
+    setSaveStatus('Unsaved changes.');
+    setBlocks((currentBlocks) =>
+      currentBlocks.map((block) =>
+        block.id === id ? { ...block, position: newPosition } : block
+      )
+    );
+  },
+  []
+);
+
+   const handleScaleBlock = useCallback((id: number, factor: number) => {
+     setSaveStatus('Unsaved changes.');
+     setBlocks((currentBlocks) =>
+       currentBlocks.map((block) =>
+         block.id === id
+           ? {
+               ...block,
+               scale: Math.min(MAX_BLOCK_SCALE, Math.max(MIN_BLOCK_SCALE, block.scale * factor)),
+             }
+           : block
+       )
+     );
+   }, []);
+
   return (
     <div className="cad-container">
       <Topbar onSave={handleSave} saveStatus={saveStatus} />
       <div className="cad-workspace">
         <Sidebar onAddBlock={handleAddBlock} onUpdateColor={handleUpdateBlockColor} />
-        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId}/>
+        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={handleMoveBlock} onScaleBlock={handleScaleBlock} />
       </div>
     </div>
   );

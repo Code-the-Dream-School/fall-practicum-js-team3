@@ -28,11 +28,21 @@ _This document explains how our team works with Git, GitHub and Jira: how to sta
 | `dev`          | Where finished work comes together and gets tested | Changes arrive only through Pull Requests (PRs) from ticket branches. |
 | `TEAM3-12-...` | Your workspace for one Jira ticket                 | Created from `dev`, merged back into `dev`, then deleted.             |
 
+Example
+
 ```
 TEAM3-12-user-login  →  dev  →  main
 ```
 
-**Ground rules**
+### Who's Who
+
+| Role                | Who                       | What they do                                                             |
+| ------------------- | ------------------------- | ------------------------------------------------------------------------ |
+| **Dev team member** | Everyone building the app | Works tickets, opens PRs, gives the first review on a teammate's PR      |
+| **Mentors**         | Olena and Angel           | Give the second review, and approve release PRs into `main`              |
+| **Team lead**       | Our PM and scrum master   | Tracks tickets and PRs, and is the escalation point when a review stalls |
+
+### Ground rules
 
 1. One ticket = one branch = one PR.
 2. Always start a branch from an up-to-date `dev`.
@@ -51,7 +61,9 @@ Every ticket follows the same steps, whatever its type (feature, bug, hotfix, ch
 
 ## 3. Working on a Ticket
 
-### Update your local `dev` branch with the latest changes from `origin/dev`.
+### Start working on the Jira ticket in your local repo
+
+**Update your local `dev` branch with the latest changes from `origin/dev`.**
 
 1. In your terminal/shell window run the following
 
@@ -60,10 +72,10 @@ Every ticket follows the same steps, whatever its type (feature, bug, hotfix, ch
     git pull
    ```
 
-### Create branch from Jira ticket
+**Create branch from Jira ticket**
 
 1. In [Jira](https://fall-practicum-team3.atlassian.net/jira/software/projects/TEAM3/boards/1/backlog?epics=visible), open the Task ticket.
-2. Assign the to yourself and move it to **In Progress**.
+2. Assign the ticket to yourself and move it to **In Progress**.
 3. Scroll down to the `Development` dropdown menu (as seen on the right of the screen). See screenshot:
 
    <img src="./images/Development Drop-down Menu.png" width="20%" height="20%">
@@ -80,6 +92,17 @@ Every ticket follows the same steps, whatever its type (feature, bug, hotfix, ch
 
 You're now ready to start working on the ticket.
 
+### Doing the actual work
+
+Before writing any code or editing any files, first do the following
+
+(per the [Best Practices for Reviewing Pull Requests](https://codethedream.slack.com/docs/T07EHJ738/F0CAWRXUBHN) Slack Canvas)
+
+- Read the Jira ticket first. You can't judge whether the change is right without knowing what it was supposed to do.
+- Read the PR description. Check the "What changed" and "How to test" sections, and note anything the author flagged as tricky.
+- Look at the size. If the PR is too large to review properly, say so and ask the author to split it. Do not approve what you cannot review.
+- Block out time. A real review takes 15-30 minutes. Don't skim it between other tasks.
+
 ### Commit and push
 
 Start each commit message with the ticket key, then say what changed:
@@ -92,7 +115,9 @@ git push -u origin <name-of-branch-copied-from-Jira-in-step-5-above>
 
 After the first push, plain `git push` is enough. Commit and push at logical stopping points, not just at the end of the day.
 
-### Stay current with `dev`
+See also [Best Practices for Git Commits and Commit Messages](https://codethedream.slack.com/docs/T07EHJ738/F0CA4M5BS3T) Slack Canvas.
+
+### Stay current with `dev` / How to handle `This branch is out-of-date with the base branch` messages at the bottom of the PR
 
 You do not need to update every morning. Update your branch when:
 
@@ -113,32 +138,42 @@ If Git reports conflicts, see section 7 ([Merge Conflicts](#7-merge-conflicts)).
 
 ## 4. Opening a Pull Request
 
-Before you open it, check:
+4a. Before you open it, check:
 
 - [ ] My branch is up to date with `dev`
 - [ ] The app runs and the tests pass
 - [ ] The PR contains only this ticket's work, and is small enough to review comfortably
 - [ ] No secrets, passwords, or `.env` files are included
 
-Then open the PR on GitHub:
+4b. Then open the PR on GitHub:
 
 - **Base branch:** `dev` (never `main`)
-- **Title:** ticket key + summary, such as `TEAM3-12 Add user login form`
-- **Description:**
+- **Title:** `TEAMS3-<Jira-ticket-number> <Text from jira ticket title>`
+  - Use Jira ticket _number_,m the _text between the two pipes_ (`|`) and the discipline(s).
 
-```
-**What changed:** (what you changed and why)
-**Jira ticket:** (link)
-**How to test:** (steps a reviewer can follow, and how you tested it)
-**Screenshots:** (required for anything UI-related)
-**Notes for reviewer:** (anything tricky or unfinished)
-```
+  - For example, given this https://fall-practicum-team3.atlassian.net/browse/TEAM3-34 Jira ticket,
+    - the number is `34`
 
-Finally, request reviewers on the PR, move the Jira ticket to **In Review**, and post the PR link in the team channel.
+    - and the text from _E1-T4 | Log in and log out | FE_ is `Log in and log out`,
+
+    - the discipline is `FE`.
+
+  - Therefore, use this PR title: `TEAM3-34 Log in and log out (FE)`
+
+- **Description:**:
+  - The body of the PR is now auto-populated using a Pull Request template.
+  - Follow the prompts in the template to fill it out.
+  - For more on writing a good PR, see [Best Practices for Creating Pull Requests](https://codethedream.slack.com/docs/T07EHJ738/F0C9X5HDBE1) Slack Canvas.
+
+4c. Finally,
+
+- request reviewers on the PR - start with fellow developers,
+- move the Jira ticket to **In Review**,
+- and post the PR link in the team channel.
 
 ## 5. Reviewing Pull Requests
 
-- Every PR needs **2 approving reviews**: one from the team lead (or a mentor) and one from a fellow student. You cannot approve your own PR.
+- Every PR needs **2 approving reviews**: one from the team lead (or a mentor) and one from a fellow dev team member. You cannot approve your own PR.
 - Reviews should normally happen within **24-48 hours**. If you cannot get to one, say so in the channel so someone else can.
 - **Everyone reviews, not just the most experienced coders.** Reading someone else's code is one of the fastest ways to learn and a real contribution to the team.
 
@@ -165,6 +200,27 @@ Finally, request reviewers on the PR, move the Jira ticket to **In Review**, and
 
 Code review is how we maintain quality and learn from each other. Treat questions, suggestions, and mistakes as chances to improve the project and everyone's skills.
 
+### Who Reviews, and in What Order
+
+Every PR into `dev` needs 2 approvals: **first a dev team member, then a mentor (Olena or Angel)**. GitHub doesn't enforce the order or who the reviewers are yet, so we do it by habit.
+
+### Keeping Reviews Moving
+
+1. **Open:** the author moves the Jira ticket to **In Review**, and posts the PR link in the team channel.
+2. **Claim:** a reviewer replies to the slack message with "I'll review this" and assigns their git handle under the "Reviewers" section of the PR.
+3. **First review done:** the reviewer submits the review, then:
+
+- requests a review from **both mentors** in the PR's **Reviewers** list, and
+- replies in the Slack thread tagging the author and both mentors ("First review done @Olena @Angel, ready for a second review").
+
+  _Aim for a claim and review within **1 day**._
+
+4. **Second review:** a mentor reviews within **48 hours** of the handoff. If neither has, the PR author and/or a mentor tags Jamie in the thread. (I prefer to have several people tag me rather than none.)
+5. **Both approved:** the author merges (section 6: see [Merging](#6-merging)) and moves the Jira ticket to **Done**.
+6. **Changes requested:** the author pushes fixes and re-requests review. The ticket stays **In Review**.
+
+See also [Best Practices for Reviewing Pull Requests](https://codethedream.slack.com/docs/T07EHJ738/F0CAWRXUBHN) Slack Canvas.
+
 ## 6. Merging a Pull Request
 
 This one procedure covers **every** merge: a ticket branch into `dev`, and `dev` into `main`. Only `dev` is ever merged into `main`.
@@ -175,7 +231,7 @@ This one procedure covers **every** merge: a ticket branch into `dev`, and `dev`
 
 All of these must be true:
 
-- [ ] It has **2 approving reviews**, and both are on the **latest commit**. New commits reset approvals ([Reviewing Pull Requests](#5-reviewing-pull-requests)).
+- [ ] It has the required approving reviews (2 for dev, 1 for main), and both are on the **latest commit**. New commits reset approvals ([Reviewing Pull Requests](#5-reviewing-pull-requests)).
 - [ ] Every review conversation is **resolved**, with the concern actually addressed.
 - [ ] No reviewer has an open **Changes requested**.
 - [ ] GitHub shows **no conflicts**. If it does, see section 7 ([Merge Conflicts](#7-merge-conflicts)).
@@ -215,7 +271,9 @@ Click **Merge pull request**, then **Confirm merge**. We use merge commits: it i
 Merged TEAM3-12 (user login) into dev. Please pull dev. It touches the nav and routes files.
 ```
 
+```
 Released dev to main (<date>): TEAM3-12 user login, TEAM3-15 profile page. main is up to date.
+```
 
 ### If something breaks after merging
 
@@ -238,7 +296,7 @@ Conflicts will happen. They are normal, not a sign you did something wrong.
 **Prevent them**
 
 - Update your branch from `dev` often and keep branches short-lived.
-- If two tickets touch the same files (shared components, routes, `package.json`), the two students should talk **before** they start.
+- If two tickets touch the same files (shared components, routes, `package.json`), the two dev team members should talk **before** they start.
 
 **Resolve them**
 
@@ -251,7 +309,7 @@ Whoever opens the PR resolves the conflict. On your ticket branch:
 5. Run the app and tests again.
 6. `git push`
 
-If it is not clear which change should win, ask the student who wrote the other change. If you are still stuck, ask the team lead or a mentor. Do not guess.
+If it is not clear which change should win, ask the dev team member who wrote the other change. If you are still stuck, ask the team lead or a mentor. Do not guess.
 
 We will practice creating and resolving a conflict together in a team meeting so it is less scary when it happens for real.
 
@@ -276,6 +334,19 @@ Release when `dev` is stable and passing tests, and the team agrees (usually at 
 **Today, you do it by hand.** Put the ticket key in your branch name (copied from Jira), commit messages, and PR title, link the ticket in the PR description, and update the ticket status yourself.
 
 **Once the Jira-GitHub integration is fully connected**, the same key becomes the link. Jira will show each ticket's branches, commits, and PRs on the ticket itself, so the team can see progress without asking, and Jira can be set up to move tickets automatically when a PR is opened or merged. Nothing changes for you except that the status updates get easier. Using the ticket key consistently from the start is what makes it work.
+
+### Keeping Jira in Sync
+
+Until the Jira-GitHub integration is connected, the ticket owner moves the ticket by hand:
+
+| When                                      | Move the ticket to                             |
+| ----------------------------------------- | ---------------------------------------------- |
+| You start work                            | **In Progress**                                |
+| You open a Draft PR                       | stays **In Progress**                          |
+| Your PR is ready for review (not a draft) | **In Review**                                  |
+| Reviewers request changes                 | stays **In Review**                            |
+| Your PR is merged                         | **Done**                                       |
+| Your PR is closed without merging         | Tell the team lead, who decides the new status |
 
 ## 10. Quick Reference
 

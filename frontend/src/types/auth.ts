@@ -11,3 +11,15 @@ export interface RegisterPayload {
   email: string;
   password: string;
 }
+
+// What we send to log in
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+// What the server returns after a successful login: the user and a token for later requests
+export interface LoginResponse {
+  token: string;
+  user: User;
+}
