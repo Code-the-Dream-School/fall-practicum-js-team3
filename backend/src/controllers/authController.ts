@@ -1,51 +1,64 @@
-import type { NextFunction, Request, Response } from "express";
-import type { LoginBody, RegisterBody } from "../middleware/authValidation";
-import { ACCESS_TOKEN_TTL } from "../services/tokenService";
-import { authenticateUser, createUser } from "../services/authService";
+import type { NextFunction, Request, Response } from 'express';
+import type { LoginBody, RegisterBody } from '../middleware/authValidation';
+import { authenticateUser, createUser, getPublicUserById } from '../services/authService';
 
 export const loginUser = async (
   req: Request<{}, {}, LoginBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { email, password } = req.body;
     const auth = await authenticateUser(email, password);
 
-    res.status(200).json({
-      success: true,
-      message: "Logged in successfully.",
-      data: { ...auth, expiresIn: ACCESS_TOKEN_TTL }
-    });
+    res.status(200).json(auth);
   } catch (error) {
     next(error);
   }
 };
 
 export const logoutUser = (_req: Request, res: Response): void => {
-  // The client ends the session by deleting its token.
-  res.status(200).json({
-    success: true,
-    message:
-      "Logged out successfully. Remove the access token from the client.",
-    data: {}
-  });
+  res.sendStatus(204);
 };
-console.log("Dummy comment to illustrate that you can suggest a code change right in the code base.")
+
+export const getCurrentUser = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userId: unknown = res.locals.userId;
+    if (typeof userId !== 'string') {
+      res.status(401).json({
+        error: { code: 'UNAUTHENTICATED', message: 'Authentication is required.' },
+      });
+      return;
+    }
+
+    const user = await getPublicUserById(userId);
+    if (!user) {
+      res.status(401).json({
+        error: { code: 'UNAUTHENTICATED', message: 'Authentication is no longer valid.' },
+      });
+      return;
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const registerUser = async (
   req: Request<{}, {}, RegisterBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { username, email, password } = req.body;
     const user = await createUser(username, email, password);
 
-    res.status(201).json({
-      success: true,
-      message: "Registered user successfully.",
-      data: { ...user, expiresIn: ACCESS_TOKEN_TTL }
-    });
+    res.status(201).json(user);
   } catch (error) {
     next(error);
   }

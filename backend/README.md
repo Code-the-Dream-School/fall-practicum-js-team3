@@ -8,11 +8,13 @@ The auth router is mounted at `/api/auth`.
 
 Request JSON: `{ "email": "person@example.com", "password": "..." }`.
 
-- Returns `400` when email or password is missing or has the wrong type.
-- Returns the same `401` response for an unknown email and an incorrect password.
-- On success, returns `200` with `{ success, message, data: { token, expiresIn, user } }`.
-- The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
-- The response never includes the password hash.
+- Returns `422` with `VALIDATION_ERROR` when email or password is missing, empty, or invalid.
+- Passwords must be at most 72 UTF-8 bytes because bcrypt truncates longer values.
+- Returns `401` with `{ "error": { "code": "INVALID_CREDENTIALS", "message": "Email or password is incorrect." } }` for both an unknown email and an incorrect password.
+- Errors use `{ "error": { "code", "message" } }`; clients should branch on the stable code.
+- On success, returns `200` with `{ "token": "...", "user": { "id": "...", "name": "...", "email": "..." } }`.
+- The access token is a 15-minute JWT. The frontend stores it in `localStorage` and sends it on protected requests as `Authorization: Bearer <token>`.
+- The response never includes the password hash. The API's `name` field maps to the database's `username` column.
 
 The login query expects PostgreSQL `users` columns `id`, `username`, `email`, and
 `passwordHash`, matching the shared DBML. Registration must save a bcrypt hash in
@@ -20,6 +22,7 @@ The login query expects PostgreSQL `users` columns `id`, `username`, `email`, an
 Because this field uses camel case in PostgreSQL, SQL must quote it as `"passwordHash"`.
 The `POSTGRES_URI`
 and a strong `JWT_SECRET` (at least 32 characters) must be set in the backend environment.
+Generate a unique secret for each environment; the value in `.env.example` is a placeholder.
 Set `CLIENT_ORIGIN` to the frontend origin; multiple origins can be comma-separated.
 
 ### PostgreSQL setup for authentication
@@ -33,23 +36,33 @@ hash in the quoted `"passwordHash"` column, and store email in lowercase.
 
 ### `POST /api/auth/logout`
 
-Returns `200` to confirm logout. Because access tokens are stateless bearer JWTs,
-the client must delete its token when logging out. Tokens already issued remain
-usable until their 15-minute expiry; use a server-side session or revocation list
-if immediate token invalidation becomes an MVP requirement. The response uses the
-same `{ success, message, data }` shape as login.
+Requires a valid bearer token and returns `204 No Content`. Missing or invalid tokens
+return `401` with error code `UNAUTHENTICATED`. Because access tokens are stateless
+bearer JWTs, the client must delete its token when logging out. Tokens already issued
+remain usable until their 15-minute expiry; use a server-side session or revocation
+list if immediate token invalidation becomes an MVP requirement.
+
+### `GET /api/auth/user`
+
+Requires a valid bearer token and returns `200` with `{ "id": "...", "name": "...", "email": "..." }`.
+The password hash is never returned. Missing or invalid tokens return `401` with error
+code `UNAUTHENTICATED`.
 
 ### `POST /api/auth/register`
 
-Request JSON: `{"username":"person", "email":"person@example.com", "password":"..."}`.
+Request JSON: `{"name":"person", "email":"person@example.com", "password":"..."}`
+(`username` is accepted as an alias for `name`).
 
-- Returns `400` when either email, password, or username are missing or has the wrong type
-- Returns `409` response when attempting to register with the same username or email more than once
-- On success, returns `201` with `{success, message, data: {token, expiresIn, user}}`
-- The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
+- Returns `400 INVALID_REQUEST` for a malformed or non-object body
+- Returns `422 VALIDATION_ERROR` when `name` is not 1-50 characters, `email` is invalid, or
+  `password` is not 8-128 characters (and at most 72 bytes, the bcrypt limit)
+- Returns `409 EMAIL_ALREADY_REGISTERED` or `409 USERNAME_ALREADY_TAKEN` for duplicates
+  (email matching is case-insensitive). Other database failures return `500`, never `409`.
+- On success, returns `201` with `{ "id", "name", "email" }`. The user is not logged in
+  automatically; call `POST /api/auth/login` with the same credentials to get a token.
 - The response never includes the password hash.
 
-The register query inserts values into the `id`, `username`, `email`, and `passwordHash` columns in the `users` PostgreSQL table. Emails are normalized to lowercase and passwords are hashed using bcrypt. A UUID is generated when inserting a new entry into the table.
+The name is saved in the `username` column. Emails are stored in lowercase and passwords are hashed with bcrypt.
 
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
