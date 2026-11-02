@@ -13,6 +13,8 @@ import Header from './components/Header.tsx'
 import { useAuthStore } from './hooks/useAuthStore.ts'
 import LoginPage from './pages/LoginPage.tsx'
 import RegisterPage from './pages/RegisterPage.tsx'
+import MyProjectsPage from './pages/MyProjectsPage.tsx'
+import EditorPlaceholderPage from './pages/EditorPlaceholderPage.tsx'
 
 export default function AppRoutes() {
   const loadUser = useAuthStore((state) => state.loadUser)
@@ -30,6 +32,8 @@ export default function AppRoutes() {
       <Route path='/' element={<App />} />
       <Route path='/register' element={<RegisterPage />} />
       <Route path='/login' element={<LoginPage />} />
+      <Route path='/projects' element={<MyProjectsPage />} />
+      <Route path='/editor/:id' element={<EditorPlaceholderPage />} />
     </Routes>
     </>
   )
