@@ -43,3 +43,49 @@ test('login with the test user returns 200, a token and the user', async ({ requ
   expect(body.user.email).toBe(TEST_USER_EMAIL)
   expect(body.user).not.toHaveProperty('passwordHash')
 })
+
+test('current user with a valid token returns the test user', async ({ request }) => {
+  const loginResponse = await request.post(`${API_URL}/auth/login`, {
+    data: { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD },
+  })
+  const { token } = await loginResponse.json()
+
+  const response = await request.get(`${API_URL}/auth/user`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  expect(response.status()).toBe(200)
+
+  const body = await response.json()
+  expect(body.email).toBe(TEST_USER_EMAIL)
+  expect(body).not.toHaveProperty('passwordHash')
+})
+
+test('logout with a valid token returns 204', async ({ request }) => {
+  const loginResponse = await request.post(`${API_URL}/auth/login`, {
+    data: { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD },
+  })
+  const { token } = await loginResponse.json()
+
+  const response = await request.post(`${API_URL}/auth/logout`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  expect(response.status()).toBe(204)
+})
+
+test('logout without a token returns 401 UNAUTHENTICATED', async ({ request }) => {
+  const response = await request.post(`${API_URL}/auth/logout`)
+  expect(response.status()).toBe(401)
+
+  const body = await response.json()
+  expect(body.error.code).toBe('UNAUTHENTICATED')
+})
+
+test('current user with an invalid token returns 401 UNAUTHENTICATED', async ({ request }) => {
+  const response = await request.get(`${API_URL}/auth/user`, {
+    headers: { Authorization: 'Bearer this-is-not-a-real-token' },
+  })
+  expect(response.status()).toBe(401)
+
+  const body = await response.json()
+  expect(body.error.code).toBe('UNAUTHENTICATED')
+})
