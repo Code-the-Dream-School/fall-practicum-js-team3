@@ -13,10 +13,11 @@ type BlockType =
   | 'torus';
 interface Block {
   id: number;
-  type: 'cube' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'torus';
+  type: BlockType;
   color: string;
   position: { x: number; y: number; z: number };
   scale: number;
+  rotation: { x: number; y: number; z: number };
 }
 
 const SHAPE_COLORS: Record<BlockType, string> = {
@@ -71,6 +72,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
+  const [transformMode, setTransformMode] = useState< 'translate' | 'rotate' >('translate');
 
 
   useEffect(() => {
@@ -97,6 +99,7 @@ function App() {
       color: SHAPE_COLORS[type], 
       position: { x: findFreeSpawnX(blocks, type), y: 0, z: 0 },
       scale: 1,
+      rotation: { x: 0, y: 0, z: 0 },
     };
     
     setBlocks(currentBlocks => [...currentBlocks, newBlock]);
@@ -128,7 +131,7 @@ function App() {
   []
 );
 
-   const handleScaleBlock = useCallback((id: number, factor: number) => {
+  const handleScaleBlock = useCallback((id: number, factor: number) => {
      setBlocks((currentBlocks) =>
        currentBlocks.map((block) =>
          block.id === id
@@ -139,14 +142,25 @@ function App() {
            : block
        )
      );
-   }, []);
+  }, []);
+
+  const handleRotateBlock = useCallback(
+    (id: number, rotation: Block['rotation']) => {
+      setBlocks((currentBlocks) =>
+        currentBlocks.map((block) =>
+          block.id === id ? { ...block, rotation } : block
+        )
+      );
+    },
+    []
+  );
 
   return (
     <div className="cad-container">
       <Topbar />
       <div className="cad-workspace">
-        <Sidebar onAddBlock={handleAddBlock} onUpdateColor={handleUpdateBlockColor} />
-        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={handleMoveBlock} onScaleBlock={handleScaleBlock} />
+        <Sidebar onAddBlock={handleAddBlock} onUpdateColor={handleUpdateBlockColor} transformMode={transformMode} onTransformModeChange={setTransformMode}/>
+        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={handleMoveBlock} onScaleBlock={handleScaleBlock} onRotateBlock={handleRotateBlock} transformMode={transformMode}/>
       </div>
     </div>
   );

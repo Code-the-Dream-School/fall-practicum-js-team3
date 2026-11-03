@@ -94,6 +94,47 @@
   color: var(--text-main);
 }
 
+.sidebar-transform-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.sidebar-transform-section h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.transform-button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.transform-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--bg-border);
+  border-radius: 6px;
+  background: white;
+  color: var(--text-main);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.transform-btn.active {
+  background: var(--accent-blue);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.transform-btn:hover:not(.active) {
+  background: var(--bg-panel);
+}
+
 .sidebar-color-section {
   margin-top: auto; 
   border-top: 1px solid var(--bg-border);
