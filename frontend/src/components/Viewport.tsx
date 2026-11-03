@@ -268,12 +268,23 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
     // Create meshes from the current block data.
     blocks.forEach((block) => {
       const isSelected = block.id === selectedBlockId;
+      const shapeColor = new THREE.Color(block.color);
 
+      if (isSelected) {
+        const hsl = { h: 0, s: 0, l: 0 };
+
+        shapeColor.getHSL(hsl);
+
+        hsl.l = hsl.l > 0.6
+          ? hsl.l - 0.3
+          : hsl.l + 0.3;
+
+        shapeColor.setHSL(hsl.h, hsl.s, hsl.l);
+      }
+      
       const material = new THREE.MeshStandardMaterial({
-        color: block.color,
+        color: shapeColor,
         roughness: 0.3,
-        emissive: isSelected ? '#3b82f6' : '#000000',
-        emissiveIntensity: isSelected ? 0.35 : 0,
       });
 
       const mesh = new THREE.Mesh(
