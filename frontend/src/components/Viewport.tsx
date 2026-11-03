@@ -18,6 +18,7 @@ interface Block {
   color: string;
   position: { x: number; y: number; z: number };
   scale: number;
+  rotation: { x: number; y: number; z: number };
 }
 
 interface ViewportProps {
@@ -28,6 +29,8 @@ interface ViewportProps {
   onSelectBlock: (id: number | null) => void;
   onMoveBlock: (id: number, position: Block['position']) => void;
   onScaleBlock: (id: number, factor: number) => void;
+  onRotateBlock: (id: number, rotation: Block['rotation']) => void;
+  transformMode: 'translate' | 'rotate';
 }
 
 // Create the correct geometry for each shape.
@@ -50,13 +53,14 @@ function createGeometry(type: BlockType): THREE.BufferGeometry {
     }
   }
 
-function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMoveBlock, onScaleBlock}: ViewportProps) {
+function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMoveBlock, onScaleBlock, onRotateBlock, transformMode,}: ViewportProps) {
   // Create an anchor point reference for our 3D container element
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const meshesRef = useRef<Map<number, THREE.Mesh>>(new Map());
   const transformControlsRef = useRef<TransformControls | null>(null);
   const [webglError, setWebglError] = useState(false);
+  
 
   // Set up the 3D workspace.
   useEffect(() => {
@@ -116,14 +120,26 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
       // The drag just ended: save the final position in the app state.
       const draggedMesh = transformControls.object;
       if (draggedMesh instanceof THREE.Mesh) {
-        // Undo the "bottom of the shape sits on the grid" offset used when meshes are built.
-        const bottom = (draggedMesh.geometry.boundingBox?.min.y ?? 0) * draggedMesh.scale.y;
+        const blockId = draggedMesh.userData.blockId as number;
+        if (transformControls.mode === 'translate') {
+          // Save the new position.
+          const bottom = (draggedMesh.geometry.boundingBox?.min.y ?? 0) * draggedMesh.scale.y;
 
-        onMoveBlock(draggedMesh.userData.blockId as number, {
+        onMoveBlock(blockId, {
           x: draggedMesh.position.x,
           y: Math.max(0, draggedMesh.position.y + bottom), // never below the grid
           z: draggedMesh.position.z,
         });
+      }
+
+      if (transformControls.mode === 'rotate') {
+          // Save the new rotation.
+          onRotateBlock(blockId, {
+            x: draggedMesh.rotation.x,
+            y: draggedMesh.rotation.y,
+            z: draggedMesh.rotation.z,
+          });
+        }
       }
 
       // The click event arrives right after the release, so clear the flag a moment later.
@@ -247,7 +263,11 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
 
       sceneRef.current = null;
     };
-  }, [onSelectBlock, onMoveBlock, onScaleBlock]);
+  }, [onSelectBlock, onMoveBlock, onScaleBlock, onRotateBlock]);
+
+    useEffect(() => {
+      transformControlsRef.current?.setMode(transformMode);
+    }, [transformMode]);
 
   // Add, update, or remove 3D blocks when the state changes.
   useEffect(() => {
@@ -290,6 +310,12 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
       const mesh = new THREE.Mesh(
         createGeometry(block.type),
         material
+      );
+
+      mesh.rotation.set(
+        block.rotation.x,
+        block.rotation.y,
+        block.rotation.z
       );
 
       // Positioning the bottom of each shape on the grid.
