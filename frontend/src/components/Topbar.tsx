@@ -2,10 +2,11 @@ import './Topbar.css';
 
 interface TopbarProps {
   onSave: () => void;
+  canSave: boolean;
   saveStatus: string;
 }
 
-function Topbar({ onSave, saveStatus }: TopbarProps) {
+function Topbar({ onSave, canSave, saveStatus }: TopbarProps) {
 
   return (
     <header className="cad-header">
@@ -24,14 +25,16 @@ function Topbar({ onSave, saveStatus }: TopbarProps) {
 
         <div className="header-center-zone">
           <div className="header-actions">
-            <button
-              className="action-btn"
-              type="button"
-              aria-label="Save project to this browser"
-              onClick={onSave}
-            >
-              Save
-            </button>
+            {canSave && (
+              <button
+                className="action-btn"
+                type="button"
+                aria-label="Save project"
+                onClick={onSave}
+              >
+                Save
+              </button>
+            )}
             <button className="action-btn" type="button">Load</button>
           </div>
           <p

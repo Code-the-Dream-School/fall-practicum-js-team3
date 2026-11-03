@@ -19,14 +19,14 @@ import type { LoginPayload, RegisterPayload, User } from '../types/auth.ts'
 const registeredUsers: User[] = []
 
 // Builds an error answer in the same format as the real API: { error: { code, message } }
-const errorResponse = (status: number, code: string, message: string) =>
+export const errorResponse = (status: number, code: string, message: string) =>
   HttpResponse.json({ error: { code, message } }, { status })
 
 // The fake token for a user. The real backend signs a JWT; the mock only needs something recognizable
 const mockTokenFor = (user: User) => `mock-token-${user.id}`
 
 // Finds the user a request belongs to, from the "Authorization: Bearer <token>" header
-const findUserByToken = (request: Request) => {
+export const findUserByToken = (request: Request) => {
   const token = request.headers.get('Authorization')?.replace('Bearer ', '')
   return registeredUsers.find((user) => mockTokenFor(user) === token)
 }
