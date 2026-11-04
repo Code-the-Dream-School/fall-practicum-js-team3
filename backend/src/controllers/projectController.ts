@@ -1,13 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ApiError } from '../errors/ApiError';
-import type { CreateProjectBody, ReplaceProjectShapesBody } from '../middleware/projectValidation';
-import { createProject, replaceProjectScene } from '../repositories/projectRepository';
-
-const getUserId = (res: Response): string => {
-  const userId: unknown = res.locals.userId;
-  if (typeof userId !== 'string') throw new ApiError(401, 'Authentication is required.');
-  return userId;
-};
+import type { CreateProjectBody } from '../middleware/projectValidation';
+import { projectRepository } from '../repositories/projectRepository';
 
 export const createProjectHandler = async (
   req: Request<{}, {}, CreateProjectBody>,
@@ -15,41 +9,14 @@ export const createProjectHandler = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const project = await createProject(getUserId(res), req.body);
-    res.status(201).json({
-      id: project.id,
-      projectName: project.projectName,
-      difficulty: project.difficulty,
-      lastSaved: project.lastSaved,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const replaceProjectShapesHandler = async (
-  req: Request<{ projectId: string }, {}, ReplaceProjectShapesBody>,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const project = await replaceProjectScene(
-      getUserId(res),
-      req.params.projectId,
-      req.body.sceneData,
-    );
-    if (!project) {
-      res.status(404).json({ success: false, message: 'Project not found.' });
-      return;
+    // The owner always comes from the verified token (set by requireAuth), never from the body.
+    const userId: unknown = res.locals.userId;
+    if (typeof userId !== 'string') {
+      throw new ApiError(401, 'UNAUTHENTICATED', 'Authentication is required.');
     }
 
-    res.status(200).json({
-      id: project.id,
-      projectName: project.projectName,
-      difficulty: project.difficulty,
-      lastSaved: project.lastSaved,
-      sceneData: req.body.sceneData,
-    });
+    const project = await projectRepository.create({ ...req.body, userId });
+    res.status(201).json(project);
   } catch (error) {
     next(error);
   }

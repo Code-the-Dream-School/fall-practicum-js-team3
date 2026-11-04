@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { LoginBody } from '../middleware/authValidation';
-import { authenticateUser } from '../services/authService';
+import { authenticateUser, getPublicUserById } from '../services/authService';
 
 export const loginUser = async (
   req: Request<{}, {}, LoginBody>,
@@ -18,10 +18,33 @@ export const loginUser = async (
 };
 
 export const logoutUser = (_req: Request, res: Response): void => {
-  // The client ends the session by deleting its token.
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully. Remove the access token from the client.',
-    data: {},
-  });
+  res.sendStatus(204);
+};
+
+export const getCurrentUser = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userId: unknown = res.locals.userId;
+    if (typeof userId !== 'string') {
+      res.status(401).json({
+        error: { code: 'UNAUTHENTICATED', message: 'Authentication is required.' },
+      });
+      return;
+    }
+
+    const user = await getPublicUserById(userId);
+    if (!user) {
+      res.status(401).json({
+        error: { code: 'UNAUTHENTICATED', message: 'Authentication is no longer valid.' },
+      });
+      return;
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
 };

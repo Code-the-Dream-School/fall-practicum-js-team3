@@ -7,6 +7,7 @@
     "dev": "tsx watch server.js",
     "build": "tsc",
     "db:setup": "tsx src/db/runMigrations.ts",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "start": "node dist/server.js"
   },
   "dependencies": {

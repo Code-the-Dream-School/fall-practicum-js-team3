@@ -20,3 +20,17 @@ export const findUserByEmail = async (email: string): Promise<AuthUser | null> =
 
   return result.rows[0] ?? null;
 };
+
+export type PublicUserRecord = Pick<AuthUser, 'id' | 'username' | 'email'>;
+
+export const findUserById = async (id: string): Promise<PublicUserRecord | null> => {
+  const result = await pool.query<PublicUserRecord>(
+    `SELECT id, username, email
+     FROM users
+     WHERE id = $1
+     LIMIT 1`,
+    [id],
+  );
+
+  return result.rows[0] ?? null;
+};

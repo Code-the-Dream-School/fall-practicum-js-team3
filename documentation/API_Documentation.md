@@ -300,31 +300,56 @@ These endpoints are proposed and must be verified against the backend.
 
 **Request body:**
 
+| Field | Type | Required | Rules |
+| :--- | :--- | :---: | :--- |
+| `name` | string | Yes | 1–100 characters after trimming. `projectName` is accepted as an alias. |
+| `difficulty` | string | No | `Brick`, `Builder` or `Engineer`. Defaults to `Brick`. |
+| `design` | object | No | The current scene: `{ "version": 1, "blocks": [...] }` with at most 500 blocks. Defaults to an empty scene. |
+
+Each block in `design.blocks` has `id` (integer, unique in the design), `type` (`cube`, `sphere`, `cylinder`, `cone`, `pyramid` or `torus`), `color` (`#RRGGBB`), `position` (`{ x, y, z }`, numbers between -1000000 and 1000000) and `scale` (greater than 0 and at most 1000).
+
 ```json
 {
-  "name": "First Model"
+  "name": "First Model",
+  "difficulty": "Builder",
+  "design": {
+    "version": 1,
+    "blocks": [
+      { "id": 1, "type": "cube", "color": "#0ea5e9", "position": { "x": 0, "y": 0, "z": 0 }, "scale": 1 },
+      { "id": 2, "type": "sphere", "color": "#ef4444", "position": { "x": 1.5, "y": 0, "z": 0 }, "scale": 2.5 }
+    ]
+  }
 }
 ```
+
+The owner is taken from the authentication token. A `userId` in the body is ignored.
 
 **Example successful response — `201 Created`:**
 
 ```json
 {
-  "id": "project_123",
+  "id": "64b7f0c2a1b2c3d4e5f60718",
   "name": "First Model",
-  "createdAt": "2026-10-12T18:00:00Z",
-  "updatedAt": "2026-10-12T18:00:00Z"
+  "difficulty": "Builder",
+  "createdAt": "2026-11-02T12:00:00.000Z",
+  "updatedAt": "2026-11-02T12:00:00.000Z"
 }
 ```
 
-**Possible errors:**
+The response never includes the stored scene data. The `id` is a MongoDB ObjectId.
 
-- `400 Bad Request` — project name is missing or invalid.
-- `401 Unauthorized` — authentication is missing or invalid.
-- `422 VALIDATION_ERROR - name is missing, empty or longer than 100 characters
-- `500 Internal Server Error` — unexpected server error.
+**Possible errors** (all use `{ "error": { "code": "...", "message": "..." } }`):
 
-The project must be associated with the authenticated user on the server.
+| Status | Code | Reason |
+| :---: | :--- | :--- |
+| 400 | `INVALID_REQUEST` | Body is missing, empty, not a JSON object, or not valid JSON |
+| 401 | `UNAUTHENTICATED` | Authentication is missing, invalid or expired |
+| 409 | `SHAPE_LIMIT_REACHED` | `design` contains more than 500 blocks |
+| 413 | `PAYLOAD_TOO_LARGE` | Request body is larger than the server limit (currently 128 KB) |
+| 422 | `VALIDATION_ERROR` | `name` is missing, empty or longer than 100 characters, `difficulty` is unknown, or `design` is invalid. The message names the invalid field, for example `design.blocks[1].color`. |
+| 500 | `INTERNAL_ERROR` | Unexpected server error. Internal details are never returned. |
+
+The authentication check runs before the body is validated.
 
 ### 3.2 List Projects and Search
 

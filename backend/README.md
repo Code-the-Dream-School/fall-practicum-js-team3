@@ -8,11 +8,12 @@ The auth router is mounted at `/api/auth`.
 
 Request JSON: `{ "email": "person@example.com", "password": "..." }`.
 
-- Returns `400` when email or password is missing or has the wrong type.
+- Returns `422` with `VALIDATION_ERROR` when email or password is missing, empty, or invalid.
 - Passwords must be at most 72 UTF-8 bytes because bcrypt truncates longer values.
-- Returns the same `401` response for an unknown email and an incorrect password.
+- Returns `401` with `{ "error": { "code": "INVALID_CREDENTIALS", "message": "Email or password is incorrect." } }` for both an unknown email and an incorrect password.
+- Errors use `{ "error": { "code", "message" } }`; clients should branch on the stable code.
 - On success, returns `200` with `{ "token": "...", "user": { "id": "...", "name": "...", "email": "..." } }`.
-- The access token is a 15-minute JWT. Send it on protected requests as `Authorization: Bearer <token>`.
+- The access token is a 15-minute JWT. The frontend stores it in `localStorage` and sends it on protected requests as `Authorization: Bearer <token>`.
 - The response never includes the password hash. The API's `name` field maps to the database's `username` column.
 
 The login query expects PostgreSQL `users` columns `id`, `username`, `email`, and
@@ -35,11 +36,17 @@ hash in the quoted `"passwordHash"` column, and store email in lowercase.
 
 ### `POST /api/auth/logout`
 
-Returns `200` to confirm logout. Because access tokens are stateless bearer JWTs,
-the client must delete its token when logging out. Tokens already issued remain
-usable until their 15-minute expiry; use a server-side session or revocation list
-if immediate token invalidation becomes an MVP requirement. The response uses the
-same `{ success, message, data }` shape as login.
+Requires a valid bearer token and returns `204 No Content`. Missing or invalid tokens
+return `401` with error code `UNAUTHENTICATED`. Because access tokens are stateless
+bearer JWTs, the client must delete its token when logging out. Tokens already issued
+remain usable until their 15-minute expiry; use a server-side session or revocation
+list if immediate token invalidation becomes an MVP requirement.
+
+### `GET /api/auth/user`
+
+Requires a valid bearer token and returns `200` with `{ "id": "...", "name": "...", "email": "..." }`.
+The password hash is never returned. Missing or invalid tokens return `401` with error
+code `UNAUTHENTICATED`.
 
 ## Project saving API
 
@@ -47,9 +54,10 @@ Project endpoints require `Authorization: Bearer <token>`.
 
 Project documents are stored in MongoDB using the published `projects` schema: MongoDB `_id`, UUID `userId`, `projectName`, `difficulty`, `sceneData`, and `lastSaved`. Each `sceneData` item follows `sceneData_Structure` (`shapeId`, `type`, `position`, `rotation`, `colorHex`, and optional `dimensions` and `groupId`).
 
-- `POST /api/projects` accepts `{ "projectName": "My project", "difficulty": "Builder" }` and creates a project owned by the authenticated user.
-- `PUT /api/projects/:projectId/sceneData` accepts `{ "sceneData": [...] }` and replaces the scene atomically, updating `lastSaved`.
-- The project ID is a MongoDB ObjectId. Only the authenticated owner can update the project. Scene data is limited to 500 items.
+- `POST /api/projects` creates a project owned by the authenticated user. Send `{ "name": "My project", "difficulty": "Builder", "design": { "version": 1, "blocks": [...] } }`; `projectName` is accepted instead of `name`, and `difficulty` (default `Brick`) and `design` are optional. The name is trimmed (1-100 characters). The owner comes from the JWT; a `userId` in the body is ignored. Returns `201 { id, name, difficulty, createdAt, updatedAt }` (stored as `projectName` and `lastSaved`; `createdAt` is the `_id` timestamp). Errors use the `{ error: { code, message } }` format: `400 INVALID_REQUEST`, `401 UNAUTHENTICATED`, `409 SHAPE_LIMIT_REACHED` (more than 500 blocks), `413 PAYLOAD_TOO_LARGE` (body over 128 KB), `422 VALIDATION_ERROR`. See `documentation/API_Documentation.md` section 3.1 for the full request and response.
+- Design blocks are validated by `src/validation/designValidation.ts` and stored as `sceneData` items (the frontend's `id` becomes `shapeId`, `color` becomes `colorHex`, `rotation` is 0 and `scale` fills `dimensions`).
+- The project ID is a MongoDB ObjectId. Updating a saved project is not implemented yet.
+- Run the tests with `npm test`. They call the real Express app with the project repository stubbed, so they need neither MongoDB nor PostgreSQL.
 - Set `MONGO_URI` in `backend/.env` before starting the server. Replace `YOUR_MONGODB_USER`, `YOUR_MONGODB_PASSWORD`, and `YOUR_MONGODB_HOST` in the `.env.example` URI with your MongoDB connection details. Keep real credentials out of Git. PostgreSQL remains the user/authentication database; MongoDB stores projects and scene data.
 
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.

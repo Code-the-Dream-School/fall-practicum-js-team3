@@ -5,7 +5,9 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction): vo
   const authorization = req.header('authorization');
   const match = authorization?.match(/^Bearer\s+(.+)$/i);
   if (!match) {
-    res.status(401).json({ success: false, message: 'Authentication is required.' });
+    res.status(401).json({
+      error: { code: 'UNAUTHENTICATED', message: 'Authentication is required.' },
+    });
     return;
   }
 
@@ -19,13 +21,17 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction): vo
     const payload = jwt.verify(match[1], secret);
     const userId = typeof payload === 'string' ? undefined : (payload as JwtPayload).sub;
     if (!userId) {
-      res.status(401).json({ success: false, message: 'Authentication token is invalid.' });
+      res.status(401).json({
+        error: { code: 'UNAUTHENTICATED', message: 'Authentication token is invalid.' },
+      });
       return;
     }
 
     res.locals.userId = userId;
     next();
   } catch {
-    res.status(401).json({ success: false, message: 'Authentication token is invalid or expired.' });
+    res.status(401).json({
+      error: { code: 'UNAUTHENTICATED', message: 'Authentication token is invalid or expired.' },
+    });
   }
 };

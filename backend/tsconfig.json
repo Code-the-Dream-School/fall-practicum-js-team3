@@ -14,5 +14,5 @@
     "noEmitOnError": true
   },
   "include": ["server.js", "src/**/*.ts", "src/**/*.js"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }

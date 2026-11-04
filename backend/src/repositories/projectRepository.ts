@@ -1,7 +1,19 @@
 import mongoose, { Schema } from 'mongoose';
-import type { CreateProjectBody, ProjectBlock } from '../middleware/projectValidation';
+import type { DesignBlock } from '../validation/designValidation';
+import type { Difficulty } from '../middleware/projectValidation';
 
-const sceneDataSchema = new Schema<ProjectBlock>({
+// One stored scene item (the published `sceneData_Structure`).
+interface SceneItem {
+  shapeId: string;
+  type: DesignBlock['type'];
+  colorHex: string;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+  dimensions?: { w: number; h: number; d: number };
+  groupId?: string;
+}
+
+const sceneDataSchema = new Schema<SceneItem>({
   shapeId: { type: String, required: true, maxlength: 100 },
   type: { type: String, required: true, enum: ['cube', 'sphere', 'cylinder', 'cone', 'pyramid', 'torus'] },
   position: {
@@ -38,40 +50,49 @@ const projectSchema = new Schema({
 
 export const ProjectModel = mongoose.models.Project || mongoose.model('Project', projectSchema);
 
+// The API shape (doc section 3). Mongo keeps `projectName` and `lastSaved`; `createdAt` is the _id's timestamp.
 export interface ProjectRecord {
   id: string;
-  projectName: string;
-  difficulty: CreateProjectBody['difficulty'];
-  lastSaved: Date | null;
+  name: string;
+  difficulty: Difficulty;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const toProjectRecord = (project: { _id: mongoose.Types.ObjectId; projectName: string; difficulty: CreateProjectBody['difficulty']; lastSaved?: Date }): ProjectRecord => ({
-  id: project._id.toString(),
-  projectName: project.projectName,
-  difficulty: project.difficulty,
-  lastSaved: project.lastSaved ?? null,
+export interface NewProject {
+  userId: string;
+  projectName: string;
+  difficulty: Difficulty;
+  blocks: DesignBlock[];
+}
+
+// The editor has no rotation or per-axis size yet, so rotation is 0 and scale fills `dimensions`.
+const toSceneItem = (block: DesignBlock): SceneItem => ({
+  shapeId: String(block.id),
+  type: block.type,
+  colorHex: block.color,
+  position: block.position,
+  rotation: { x: 0, y: 0, z: 0 },
+  dimensions: { w: block.scale, h: block.scale, d: block.scale },
 });
 
-export const createProject = async (userId: string, project: CreateProjectBody): Promise<ProjectRecord> => {
-  const created = await ProjectModel.create({
-    userId,
-    projectName: project.projectName,
-    difficulty: project.difficulty,
-    sceneData: [],
-  });
-  return toProjectRecord(created);
-};
+// An object (not bare functions) so tests can replace `create` without a database.
+export const projectRepository = {
+  async create(project: NewProject): Promise<ProjectRecord> {
+    const created = await ProjectModel.create({
+      userId: project.userId,
+      projectName: project.projectName,
+      difficulty: project.difficulty,
+      sceneData: project.blocks.map(toSceneItem),
+      lastSaved: new Date(),
+    });
 
-export const replaceProjectScene = async (
-  userId: string,
-  projectId: string,
-  sceneData: ProjectBlock[],
-): Promise<ProjectRecord | null> => {
-  const updated = await ProjectModel.findOneAndUpdate(
-    { _id: new mongoose.Types.ObjectId(projectId), userId },
-    { $set: { sceneData, lastSaved: new Date() } },
-    { new: true, runValidators: true },
-  ).exec();
-
-  return updated ? toProjectRecord(updated) : null;
+    return {
+      id: created._id.toString(),
+      name: created.projectName,
+      difficulty: created.difficulty,
+      createdAt: created._id.getTimestamp(),
+      updatedAt: created.lastSaved ?? created._id.getTimestamp(),
+    };
+  },
 };
