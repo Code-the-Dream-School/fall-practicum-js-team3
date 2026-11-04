@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import {useCallback, useEffect, useState } from 'react';
 import Topbar from './components/Topbar';
 import Sidebar from './components/Sidebar';
 import Viewport from './components/Viewport';
@@ -13,9 +13,11 @@ type BlockType =
   | 'torus';
 interface Block {
   id: number;
-  type: 'cube' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'torus';
+  type: BlockType;
   color: string;
   position: { x: number; y: number; z: number };
+  scale: number;
+  rotation: { x: number; y: number; z: number };
 }
 
 const SHAPE_COLORS: Record<BlockType, string> = {
@@ -27,11 +29,50 @@ const SHAPE_COLORS: Record<BlockType, string> = {
   torus: '#f97316',
 };
 
+// How far each shape reaches from its center sideways (x and z) at scale 1.
+// Keep these in sync with the sizes in createGeometry (Viewport.tsx).
+const SHAPE_HALF_WIDTH: Record<BlockType, number> = {
+  cube: 0.5,
+  sphere: 0.6,
+  cylinder: 0.5,
+  cone: 0.6,
+  pyramid: 0.7,
+  torus: 0.55,
+};
+
+// Empty space to leave between two shapes.
+const SPAWN_GAP = 0.5;
+
+// Find the first empty spot in the row, so a new shape never lands inside another one.
+function findFreeSpawnX(existingBlocks: Block[], newType: BlockType): number {
+  let x = 0;
+  while (
+    existingBlocks.some(
+      (block) => {
+      // The closest the two centers may be: both half-widths (scaled) plus a gap.
+      const minDistance =
+        SHAPE_HALF_WIDTH[block.type] * block.scale + SHAPE_HALF_WIDTH[newType] + SPAWN_GAP;
+      return (
+        Math.abs(block.position.x - x) < minDistance &&
+        Math.abs(block.position.z) < minDistance
+      );
+    })
+  ) {
+    x += 0.5;
+  }
+  return x;
+}
+
+// Smallest and largest size a shape can have (1 = original size).
+const MIN_BLOCK_SCALE = 0.2;
+const MAX_BLOCK_SCALE = 5;
+
 function App() {
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
+  const [transformMode, setTransformMode] = useState< 'translate' | 'rotate' >('translate');
 
 
   useEffect(() => {
@@ -55,8 +96,10 @@ function App() {
     const newBlock: Block = {
       id: Date.now(),
       type: type,
-      color: SHAPE_COLORS[type],
-      position: { x: blocks.length * 1.5, y: 0, z: 0 }, 
+      color: SHAPE_COLORS[type], 
+      position: { x: findFreeSpawnX(blocks, type), y: 0, z: 0 },
+      scale: 1,
+      rotation: { x: 0, y: 0, z: 0 },
     };
     
     setBlocks(currentBlocks => [...currentBlocks, newBlock]);
@@ -77,12 +120,47 @@ function App() {
     });
   };
 
+  const handleMoveBlock = useCallback(
+  (id: number, newPosition: Block['position']): void => {
+    setBlocks((currentBlocks) =>
+      currentBlocks.map((block) =>
+        block.id === id ? { ...block, position: newPosition } : block
+      )
+    );
+  },
+  []
+);
+
+  const handleScaleBlock = useCallback((id: number, factor: number) => {
+     setBlocks((currentBlocks) =>
+       currentBlocks.map((block) =>
+         block.id === id
+           ? {
+               ...block,
+               scale: Math.min(MAX_BLOCK_SCALE, Math.max(MIN_BLOCK_SCALE, block.scale * factor)),
+             }
+           : block
+       )
+     );
+  }, []);
+
+  const handleRotateBlock = useCallback(
+    (id: number, rotation: Block['rotation']) => {
+      setBlocks((currentBlocks) =>
+        currentBlocks.map((block) =>
+          block.id === id ? { ...block, rotation } : block
+        )
+      );
+    },
+    []
+  );
+
   return (
     <div className="cad-container">
       <Topbar />
       <div className="cad-workspace">
-        <Sidebar onAddBlock={handleAddBlock} onUpdateColor={handleUpdateBlockColor} />
-        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId}/>
+        <Sidebar onAddBlock={handleAddBlock} onUpdateColor={handleUpdateBlockColor} transformMode={transformMode} onTransformModeChange={setTransformMode}/>
+        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={setSelectedBlockId} onMoveBlock={handleMoveBlock} onScaleBlock={handleScaleBlock} onRotateBlock={handleRotateBlock} transformMode={transformMode}/>
       </div>
     </div>
   );

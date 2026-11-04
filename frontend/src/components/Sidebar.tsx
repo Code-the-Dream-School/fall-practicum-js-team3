@@ -13,6 +13,8 @@ type BlockType =
 interface SidebarProps {
   onAddBlock: (type: BlockType) => void;
   onUpdateColor: (color: string) => void;
+  transformMode: 'translate' | 'rotate';
+  onTransformModeChange: (mode: 'translate' | 'rotate') => void;
 }
 
 interface ShapeTemplate {
@@ -21,7 +23,7 @@ interface ShapeTemplate {
   icon: ReactNode;
 }
 
-function Sidebar({ onAddBlock, onUpdateColor }: SidebarProps) {
+function Sidebar({ onAddBlock, onUpdateColor, transformMode, onTransformModeChange, }: SidebarProps) {
   const [selectedColor, setSelectedColor] = useState<string>('#E71D36');
 
   const handleSwatchClick = (color: string) => {
@@ -119,6 +121,30 @@ function Sidebar({ onAddBlock, onUpdateColor }: SidebarProps) {
             <span className="shape-card-label">{shape.label}</span>
           </button>
         ))}
+      </div>
+
+      <div className="sidebar-transform-section">
+        <h3>Transform</h3>
+
+        <div className="transform-button-group">
+          <button
+            type="button"
+            className={`transform-btn ${transformMode === 'translate' ? 'active' : ''}`}
+            onClick={() => onTransformModeChange('translate')}
+          >
+            <span>↔</span>
+            Move
+          </button>
+
+          <button
+            type="button"
+            className={`transform-btn ${transformMode === 'rotate' ? 'active' : ''}`}
+            onClick={() => onTransformModeChange('rotate')}
+          >
+            <span>⟳</span>
+            Rotate
+          </button>
+        </div>
       </div>
 
       <div className="sidebar-color-section">
