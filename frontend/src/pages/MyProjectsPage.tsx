@@ -1,7 +1,7 @@
 /*
   MyProjectsPage: lists the logged-in user's projects.
   The page is always in exactly one of these situations:
-  not signed in, loading, session expired, error, no projects yet, or showing the list.
+  loading, session expired, error, no projects yet, or showing the list.
 */
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -58,17 +58,7 @@ export default function MyProjectsPage() {
     return () => controller.abort()
   }, [token, retryCount, debouncedSearch])
 
-  // Temporary: the protected route (Kelly's PR) will make this unnecessary
-  if (!token) {
-    return (
-      <main>
-        <h1>My Projects</h1>
-        <p>Please <Link to='/login'>sign in</Link> to see your projects.</p>
-      </main>
-    )
-  }
-
-    return (
+  return (
     <main>
       <h1>My Projects</h1>
 
