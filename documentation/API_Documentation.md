@@ -77,6 +77,7 @@ All errors use the same JSON structure:
 | `FORBIDDEN` | 403 | Request refused, for example a missing CSRF header |
 | `NOT_FOUND` | 404 | Resource not found or not visible to the user |
 | `EMAIL_ALREADY_REGISTERED` | 409 | Email is already in use |
+| `USERNAME_ALREADY_TAKEN` | 409 | Name is already in use |
 | `SHAPE_LIMIT_REACHED` | 409 | The project already holds the maximum number of shapes (500) |
 | `PAYLOAD_TOO_LARGE` | 413 | Request body exceeds 1 MB |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | `Content-Type` is not `application/json` |
@@ -152,6 +153,7 @@ These routes are proposed and must be checked against the actual implementation.
 | :---: | :--- | :--- |
 | 400 | `INVALID_REQUEST` | Body is missing or is not valid JSON |
 | 409 | `EMAIL_ALREADY_REGISTERED` | Email is already in use |
+| 409 | `USERNAME_ALREADY_TAKEN` | Name is already in use |
 | 422 | `VALIDATION_ERROR` | A field is missing or breaks a rule above |
 | 429 | `RATE_LIMITED` | Too many registration attempts |
 | 500 | `INTERNAL_ERROR` | Unexpected server error |

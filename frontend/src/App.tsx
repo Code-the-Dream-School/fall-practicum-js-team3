@@ -11,6 +11,7 @@ function App() {
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
 
   const isLoggedIn = useAuthStore((state) => state.user !== null);
   const blocks = useDesignStore((state) => state.blocks);
@@ -22,22 +23,16 @@ function App() {
   const updateSelectedColor = useDesignStore((state) => state.updateSelectedColor);
   const moveBlock = useDesignStore((state) => state.moveBlock);
   const scaleBlock = useDesignStore((state) => state.scaleBlock);
+  const rotateBlock = useDesignStore((state) => state.rotateBlock);
 
   useEffect(() => {
-    // Call the backend API
     fetch('http://localhost:8080/api/hello')
       .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch from backend');
-        }
+        if (!response.ok) throw new Error('Failed to fetch from backend');
         return response.json();
       })
-      .then((data:{ message: string }) => {
-        setMessage(data.message);
-      })
-      .catch((err) => {
-        setError(err.message);
-      });
+      .then((data: { message: string }) => setMessage(data.message))
+      .catch((err) => setError(err.message));
   }, []);
 
   let saveStatus = '';
@@ -52,8 +47,23 @@ function App() {
         saveStatus={saveStatus}
       />
       <div className="cad-workspace">
-        <Sidebar onAddBlock={addBlock} onUpdateColor={updateSelectedColor} />
-        <Viewport error={error} message={message} blocks={blocks} selectedBlockId={selectedBlockId} onSelectBlock={selectBlock} onMoveBlock={moveBlock} onScaleBlock={scaleBlock} />
+        <Sidebar
+          onAddBlock={addBlock}
+          onUpdateColor={updateSelectedColor}
+          transformMode={transformMode}
+          onTransformModeChange={setTransformMode}
+        />
+        <Viewport
+          error={error}
+          message={message}
+          blocks={blocks}
+          selectedBlockId={selectedBlockId}
+          onSelectBlock={selectBlock}
+          onMoveBlock={moveBlock}
+          onScaleBlock={scaleBlock}
+          onRotateBlock={rotateBlock}
+          transformMode={transformMode}
+        />
       </div>
       {isSaveDialogOpen && <SaveProjectDialog onClose={() => setIsSaveDialogOpen(false)} />}
     </div>

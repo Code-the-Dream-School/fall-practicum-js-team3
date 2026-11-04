@@ -15,6 +15,7 @@ export interface Block {
   color: string;
   position: { x: number; y: number; z: number };
   scale: number;
+  rotation: { x: number; y: number; z: number };
 }
 
 export interface DesignJson {

@@ -22,16 +22,31 @@ const SHAPE_COLORS: Record<BlockType, string> = {
   torus: '#f97316',
 }
 
+const SHAPE_HALF_WIDTH: Record<BlockType, number> = {
+  cube: 0.5,
+  sphere: 0.6,
+  cylinder: 0.5,
+  cone: 0.6,
+  pyramid: 0.7,
+  torus: 0.55,
+}
+
+const SPAWN_GAP = 0.5
+
 // Smallest and largest size a shape can have (1 = original size).
 const MIN_BLOCK_SCALE = 0.2
 const MAX_BLOCK_SCALE = 5
 
 // Find the first empty spot in the row, so a new shape never lands inside another one.
-function findFreeSpawnX(existingBlocks: Block[]): number {
+function findFreeSpawnX(existingBlocks: Block[], newType: BlockType): number {
   let x = 0
   while (
     existingBlocks.some(
-      (block) => Math.abs(block.position.x - x) < 1.5 && Math.abs(block.position.z) < 1.5,
+      (block) => {
+        const minDistance =
+          SHAPE_HALF_WIDTH[block.type] * block.scale + SHAPE_HALF_WIDTH[newType] + SPAWN_GAP
+        return Math.abs(block.position.x - x) < minDistance && Math.abs(block.position.z) < minDistance
+      },
     )
   ) {
     x += 0.5
@@ -49,6 +64,7 @@ interface DesignState {
   updateSelectedColor: (color: string) => void
   moveBlock: (id: number, position: Block['position']) => void
   scaleBlock: (id: number, factor: number) => void
+  rotateBlock: (id: number, rotation: Block['rotation']) => void
   toJSON: () => DesignJson
   markSaved: (project: Pick<Project, 'id' | 'name'>) => void
 }
@@ -64,8 +80,9 @@ export const useDesignStore = create<DesignState>((set, get) => ({
       id: Date.now(),
       type,
       color: SHAPE_COLORS[type],
-      position: { x: findFreeSpawnX(get().blocks), y: 0, z: 0 },
+      position: { x: findFreeSpawnX(get().blocks, type), y: 0, z: 0 },
       scale: 1,
+      rotation: { x: 0, y: 0, z: 0 },
     }
     set((state) => ({ blocks: [...state.blocks, block], selectedBlockId: block.id, isDirty: true }))
   },
@@ -102,6 +119,13 @@ export const useDesignStore = create<DesignState>((set, get) => ({
             }
           : block,
       ),
+      isDirty: true,
+    }))
+  },
+
+  rotateBlock(id, rotation) {
+    set((state) => ({
+      blocks: state.blocks.map((block) => (block.id === id ? { ...block, rotation } : block)),
       isDirty: true,
     }))
   },
