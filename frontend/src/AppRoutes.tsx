@@ -6,35 +6,57 @@
   When the app starts, it also checks whether a saved login (token) is still valid,
   so a user who reloads the page stays logged in.
 */
-import { useEffect } from 'react'
-import { Route, Routes } from 'react-router-dom'
-import App from './App.tsx'
-import Header from './components/Header.tsx'
-import { useAuthStore } from './hooks/useAuthStore.ts'
-import LoginPage from './pages/LoginPage.tsx'
-import RegisterPage from './pages/RegisterPage.tsx'
-import MyProjectsPage from './pages/MyProjectsPage.tsx'
-import EditorPlaceholderPage from './pages/EditorPlaceholderPage.tsx'
+import { useEffect } from 'react';
+import { Route, Routes } from 'react-router-dom';
+import App from './App.tsx';
+import Header from './components/Header.tsx';
+import { useAuthStore } from './hooks/useAuthStore.ts';
+import LoginPage from './pages/LoginPage.tsx';
+import RegisterPage from './pages/RegisterPage.tsx';
+import MyProjectsPage from './pages/MyProjectsPage.tsx';
+import EditorPlaceholderPage from './pages/EditorPlaceholderPage.tsx';
+import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
 
 export default function AppRoutes() {
-  const loadUser = useAuthStore((state) => state.loadUser)
+  const loadUser = useAuthStore((state) => state.loadUser);
 
   // Runs once at startup. If the page closes first, the request is cancelled
   useEffect(() => {
-    const controller = new AbortController()
-    loadUser(controller.signal)
-    return () => controller.abort()
-  }, [loadUser])
+    const controller = new AbortController();
+    loadUser(controller.signal);
+    return () => controller.abort();
+  }, [loadUser]);
   return (
     <>
       <Header />
-    <Routes>
-      <Route path='/' element={<App />} />
-      <Route path='/register' element={<RegisterPage />} />
-      <Route path='/login' element={<LoginPage />} />
-      <Route path='/projects' element={<MyProjectsPage />} />
-      <Route path='/editor/:id' element={<EditorPlaceholderPage />} />
-    </Routes>
+      <Routes>
+        <Route
+          path='/'
+          element={
+            <ProtectedRoute>
+              <App />
+            </ProtectedRoute>
+          }
+        />
+        <Route path='/register' element={<RegisterPage />} />
+        <Route path='/login' element={<LoginPage />} />
+        <Route
+          path='/projects'
+          element={
+            <ProtectedRoute>
+              <MyProjectsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/editor/:id'
+          element={
+            <ProtectedRoute>
+              <EditorPlaceholderPage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </>
-  )
+  );
 }
