@@ -1,9 +1,14 @@
-// A project as the server returns it (POST /api/projects)
+// One project as returned by create and list endpoints.
 export interface Project {
   id: string;
   name: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// What GET /api/projects answers: the projects are wrapped in an object.
+export interface ProjectListResponse {
+  projects: Project[];
 }
 
 // The shapes the user built, as produced by the design store's toJSON()
