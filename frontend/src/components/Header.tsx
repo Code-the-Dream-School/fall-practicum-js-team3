@@ -28,6 +28,7 @@ export default function Header() {
       <nav>
         {user ? (
           <>
+            <Link to='/projects'>My Projects</Link>{'   '}
             <span>Hello, {user.name}</span>
             <button type='button' onClick={handleLogout}>
               Log out
