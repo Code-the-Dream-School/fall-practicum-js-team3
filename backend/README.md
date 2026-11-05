@@ -48,6 +48,35 @@ Requires a valid bearer token and returns `200` with `{ "id": "...", "name": "..
 The password hash is never returned. Missing or invalid tokens return `401` with error
 code `UNAUTHENTICATED`.
 
+## Project data (MongoDB)
+
+Projects are stored in MongoDB with Mongoose. User accounts stay in PostgreSQL, so a
+project's `owner` is the PostgreSQL user id (the token's `sub`) saved as a string.
+There is no join between the two databases.
+
+### MongoDB setup
+
+Set `MONGO_URI` in `backend/.env`. The server connects on startup and exits if it cannot.
+
+- Shared Atlas cluster: ask a teammate for the connection string. Never commit it or
+  paste it in a shared channel.
+- Local MongoDB: `MONGO_URI=mongodb://localhost:27017/blockcad`
+
+Use the database name `blockcad`. Tests should use an in-memory database, not the
+shared cluster.
+
+### How project data is handled
+
+- `owner` always comes from the verified token, never from the request body, and every
+  query is limited to it.
+- The data-access functions are in `src/repositories/projectRepository.ts`. They return
+  `null` for a project that is missing or belongs to someone else, and routes should
+  answer `404` for both. The routes come with E3-T2 to E3-T5.
+- A project is `{ name, design }`. `name` is trimmed and 1 to 100 characters. `design`
+  is `{ schemaVersion, shapes }` with at most 500 shapes, and is checked by
+  `src/validation/projectDesign.ts` before it is saved.
+- `/api/projects` accepts bodies up to 1 MB. All other routes keep the 10 KB limit.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 
