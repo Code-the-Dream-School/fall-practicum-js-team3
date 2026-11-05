@@ -3,11 +3,16 @@ import type { AuthUser } from '../repositories/userRepository';
 
 export const ACCESS_TOKEN_TTL = '15m';
 
-export const createAccessToken = (user: AuthUser): string => {
+export const assertTokenConfig = (): string => {
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error('JWT_SECRET must be configured with at least 32 characters.');
   }
+  return secret;
+};
+
+export const createAccessToken = (user: AuthUser): string => {
+  const secret = assertTokenConfig();
 
   return jwt.sign(
     { email: user.email },
