@@ -107,7 +107,8 @@ function toSummary(record: ProjectRecord): ProjectSummary {
     };
 }
 
-// Shapes are free-form in MongoDB. This trusts what was saved; records edited by hand or from older versions aren't re-checked.
+// Shapes are free-form in MongoDB. This trusts what was saved; 
+// records edited by hand or from older versions aren't re-checked.- At least not yet. :)
 function toProject(record: ProjectRecord): ProjectView {
     const emptyDesign: Design = { schemaVersion: CURRENT_SCHEMA_VERSION, shapes: [] };
     return { ...toSummary(record), design: (record.design ?? emptyDesign) as Design };
