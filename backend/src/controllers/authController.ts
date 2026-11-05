@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { LoginBody } from '../middleware/authValidation';
-import { authenticateUser, getPublicUserById } from '../services/authService';
+import type { LoginBody, RegisterBody } from '../middleware/authValidation';
+import { authenticateUser, createUser, getPublicUserById } from '../services/authService';
 
 export const loginUser = async (
   req: Request<{}, {}, LoginBody>,
@@ -44,6 +44,21 @@ export const getCurrentUser = async (
     }
 
     res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const registerUser = async (
+  req: Request<{}, {}, RegisterBody>,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { username, email, password } = req.body;
+    const user = await createUser(username, email, password);
+
+    res.status(201).json(user);
   } catch (error) {
     next(error);
   }
