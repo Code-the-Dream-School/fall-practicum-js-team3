@@ -1,8 +1,8 @@
 .cad-header {
   min-height: 68px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  position: relative;
   gap: 16px;
   padding: 8px 1.5%;
   background-color: var(--bg-app);
@@ -11,6 +11,7 @@
 }
 
 .header-left-zone {
+  grid-column: 1;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -60,6 +61,45 @@
   text-overflow: ellipsis;
 }
 
+.save-status {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+  border: 0;
+}
+
+.save-status.is-visible {
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
+  border: 1px solid #86efac;
+  border-radius: var(--radius-md);
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 12%);
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.save-status.is-unsaved {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 /* .save-timestamp {
   font-size: 0.75rem;
   color: #10b981; 
@@ -68,12 +108,17 @@
 
 .header-center-zone {
   display: flex;
+  grid-column: 2;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .action-btn {
@@ -100,6 +145,8 @@
 }
 
 .header-right-zone {
+  grid-column: 3;
+  justify-self: end;
   flex-shrink: 0;
 }
 
@@ -120,6 +167,7 @@
 
 @media (max-width: 950px) {
   .cad-header {
+    display: flex;
     flex-wrap: wrap;
   }
 
@@ -130,7 +178,14 @@
   .header-center-zone {
     position: static;
     transform: none;
+    flex-direction: column;
     flex: 1 1 auto;
+    gap: 6px;
+  }
+
+  .save-status.is-visible {
+    max-width: min(100%, 320px);
+    white-space: normal;
   }
 
 }
@@ -147,6 +202,10 @@
   }
 
   .header-center-zone {
+    gap: 6px;
+  }
+
+  .header-actions {
     gap: 8px;
   }
 
