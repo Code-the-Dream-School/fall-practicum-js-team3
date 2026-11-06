@@ -22,6 +22,16 @@ test('login with an unknown email returns 401 INVALID_CREDENTIALS', async ({ req
   expect(body.error.code).toBe('INVALID_CREDENTIALS')
 })
 
+test('login with a wrong password returns 401 INVALID_CREDENTIALS', async ({ request }) => {
+  const response = await request.post(`${API_URL}/auth/login`, {
+    data: { email: TEST_USER_EMAIL, password: 'WrongPassword123' },
+  })
+
+  expect(response.status()).toBe(401)
+  const body = await response.json()
+  expect(body.error.code).toBe('INVALID_CREDENTIALS')
+})
+
 test('login without a password returns 422 VALIDATION_ERROR', async ({ request }) => {
   const response = await request.post(`${API_URL}/auth/login`, {
     data: { email: 'person@example.com' },
