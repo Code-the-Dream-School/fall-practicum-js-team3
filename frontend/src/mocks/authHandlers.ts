@@ -26,7 +26,7 @@ const errorResponse = (status: number, code: string, message: string) =>
 const mockTokenFor = (user: User) => `mock-token-${user.id}`
 
 // Finds the user a request belongs to, from the "Authorization: Bearer <token>" header
-const findUserByToken = (request: Request) => {
+export const findUserByToken = (request: Request) => {
   const token = request.headers.get('Authorization')?.replace('Bearer ', '')
   return registeredUsers.find((user) => mockTokenFor(user) === token)
 }
