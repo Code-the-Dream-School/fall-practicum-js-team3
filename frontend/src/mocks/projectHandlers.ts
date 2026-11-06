@@ -1,15 +1,11 @@
 /*
-  Mock projects API (development only).
-  Imitates GET /api/projects from the API documentation:
-  401 without a valid token, otherwise 200 with { projects: [...] },
-  filtered by the optional "search" query and sorted with the newest first.
+  Mock project API (development only): create projects and list/search them.
+  Projects live in memory and disappear when the page reloads.
 */
-
 import { delay, http, HttpResponse } from 'msw'
-import { findUserByToken } from './authHandlers.ts'
-import type { Project } from '../types/project.ts'
+import type { CreateProjectPayload, Project } from '../types/project.ts'
+import { errorResponse, findUserByToken } from './authHandlers.ts'
 
-// Sample data. Every logged-in user sees the same list; that is enough to build the page
 const sampleProjects: Project[] = [
   { id: 'project_1', name: 'Robot', createdAt: '2026-10-01T10:00:00Z', updatedAt: '2026-10-20T15:30:00Z' },
   { id: 'project_2', name: 'My first castle', createdAt: '2026-10-05T09:00:00Z', updatedAt: '2026-10-12T18:00:00Z' },
@@ -25,22 +21,42 @@ const sampleProjects: Project[] = [
   { id: 'project_12', name: 'bridge 3000', createdAt: '2026-10-16T15:00:00Z', updatedAt: '2026-10-20T15:30:00Z' },
 ]
 
+const projects: Project[] = [...sampleProjects]
+
 export const projectHandlers = [
+  // POST /api/projects: creates a project for the logged-in user
+  http.post('*/api/projects', async ({ request }) => {
+    if (!findUserByToken(request)) {
+      return errorResponse(401, 'UNAUTHENTICATED', 'No valid session.')
+    }
+
+    let body: Partial<CreateProjectPayload>
+    try {
+      body = (await request.json()) as Partial<CreateProjectPayload>
+    } catch {
+      return errorResponse(400, 'INVALID_REQUEST', 'Body is missing or is not valid JSON.')
+    }
+
+    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    if (name.length < 1 || name.length > 100) {
+      return errorResponse(422, 'VALIDATION_ERROR', 'Project name must be 1-100 characters.')
+    }
+
+    const now = new Date().toISOString()
+    const project: Project = { id: `project_${projects.length + 1}`, name, createdAt: now, updatedAt: now }
+    projects.push(project)
+    return HttpResponse.json(project, { status: 201 })
+  }),
+
   // GET /api/projects?search=...: the logged-in user's projects
   http.get('*/api/projects', async ({ request }) => {
-    // A short pause, so the "Loading..." state is visible while we build the page
     await delay(600)
-
     if (!findUserByToken(request)) {
-      return HttpResponse.json(
-        { error: { code: 'UNAUTHENTICATED', message: 'No valid session.' } },
-        { status: 401 },
-      )
+      return errorResponse(401, 'UNAUTHENTICATED', 'No valid session.')
     }
 
     const search = new URL(request.url).searchParams.get('search')?.trim().toLowerCase() ?? ''
-
-    const matchingProjects = sampleProjects
+    const matchingProjects = projects
       .filter((project) => project.name.toLowerCase().includes(search))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 
