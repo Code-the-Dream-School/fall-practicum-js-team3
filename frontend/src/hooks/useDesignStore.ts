@@ -65,6 +65,7 @@ interface DesignState {
   moveBlock: (id: number, position: Block['position']) => void
   scaleBlock: (id: number, factor: number) => void
   rotateBlock: (id: number, rotation: Block['rotation']) => void
+  removeBlock: (id: number) => void
   toJSON: () => DesignJson
   markSaved: (project: Pick<Project, 'id' | 'name'>) => void
 }
@@ -126,6 +127,14 @@ export const useDesignStore = create<DesignState>((set, get) => ({
   rotateBlock(id, rotation) {
     set((state) => ({
       blocks: state.blocks.map((block) => (block.id === id ? { ...block, rotation } : block)),
+      isDirty: true,
+    }))
+  },
+
+    removeBlock(id) {
+    set((state) => ({
+      blocks: state.blocks.filter((block) => block.id !== id),
+      selectedBlockId: state.selectedBlockId === id ? null : state.selectedBlockId,
       isDirty: true,
     }))
   },
