@@ -61,6 +61,22 @@ Project documents are stored in MongoDB using the published `projects` schema: M
 - Run the tests with `npm test`. They call the real Express app with the project repository stubbed, so they need neither MongoDB nor PostgreSQL.
 - Set `MONGO_URI` in `backend/.env` before starting the server. Replace `YOUR_MONGODB_USER`, `YOUR_MONGODB_PASSWORD`, and `YOUR_MONGODB_HOST` in the `.env.example` URI with your MongoDB connection details. Keep real credentials out of Git. PostgreSQL remains the user/authentication database; MongoDB stores projects and scene data.
 
+### `POST /api/auth/register`
+
+Request JSON: `{"name":"person", "email":"person@example.com", "password":"..."}`
+(`username` is accepted as an alias for `name`).
+
+- Returns `400 INVALID_REQUEST` for a malformed or non-object body
+- Returns `422 VALIDATION_ERROR` when `name` is not 1-50 characters, `email` is invalid, or
+  `password` is not 8-128 characters (and at most 72 bytes, the bcrypt limit)
+- Returns `409 EMAIL_ALREADY_REGISTERED` or `409 USERNAME_ALREADY_TAKEN` for duplicates
+  (email matching is case-insensitive). Other database failures return `500`, never `409`.
+- On success, returns `201` with `{ "id", "name", "email" }`. The user is not logged in
+  automatically; call `POST /api/auth/login` with the same credentials to get a token.
+- The response never includes the password hash.
+
+The name is saved in the `username` column. Emails are stored in lowercase and passwords are hashed with bcrypt.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 
@@ -75,6 +91,7 @@ The backend API is responsible for:
 - Enforcing security and access control
 
 The backend **must not**:
+
 - Render UI
 - Trust client input
 - Expose sensitive information
@@ -84,9 +101,11 @@ The backend **must not**:
 ### 1️⃣ Separate Routes from Controllers
 
 **Routes**
+
 - Define the URL and HTTP method
 
 **Controllers**
+
 - Contain the logic for handling requests
 
 This separation keeps code readable and scalable.
@@ -94,6 +113,7 @@ This separation keeps code readable and scalable.
 ### 2️⃣ One Responsibility per File
 
 If a file:
+
 - defines routes
 - validates data
 - accesses the database
@@ -122,6 +142,7 @@ const getItems = async (req, res, next) => {
 ### 4️⃣ Never Trust Client Input
 
 All data coming from:
+
 - request bodies
 - query params
 - URL params
@@ -146,12 +167,13 @@ module.exports = (err, req, res, next) => {
   console.error(err.stack);
 
   res.status(err.status || 500).json({
-    message: err.message || 'Server error'
+    message: err.message || "Server error"
   });
 };
 ```
 
 Benefits:
+
 - consistent responses
 - easier debugging
 - cleaner controllers
@@ -161,11 +183,13 @@ Benefits:
 ### 7️⃣ Never Leak Internal Errors
 
 ❌ Bad:
+
 ```json
 { "error": "Cannot read property 'map' of undefined" }
 ```
 
 ✅ Good:
+
 ```json
 { "message": "Something went wrong" }
 ```
@@ -177,6 +201,7 @@ Log details on the server, not in API responses.
 ### 8️⃣ Use Security Middleware
 
 Recommended packages:
+
 - `helmet` – secure HTTP headers
 - `cors` – control cross-origin access
 - `express-rate-limit` – prevent abuse
@@ -193,6 +218,7 @@ These should be applied **globally**.
 ### 🔟 Use Environment Variables for Secrets
 
 Examples:
+
 - database URLs
 - JWT secrets
 - API keys
@@ -214,6 +240,7 @@ Never commit `.env` files to Git.
 ### 1️⃣2️⃣ Keep API Response Shapes Consistent
 
 Example success response:
+
 ```json
 {
   "success": true,
@@ -222,6 +249,7 @@ Example success response:
 ```
 
 Example error response:
+
 ```json
 {
   "success": false,
@@ -242,6 +270,7 @@ Consistency makes frontend development easier.
 > The backend is the **source of truth** for data, rules, and security.
 
 Build APIs assuming:
+
 - clients can be buggy
 - clients can be malicious
 - future developers will read your code

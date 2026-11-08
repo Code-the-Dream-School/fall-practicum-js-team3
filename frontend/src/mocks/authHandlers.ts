@@ -19,7 +19,7 @@ import type { LoginPayload, RegisterPayload, User } from '../types/auth.ts'
 const registeredUsers: User[] = []
 
 // Builds an error answer in the same format as the real API: { error: { code, message } }
-const errorResponse = (status: number, code: string, message: string) =>
+export const errorResponse = (status: number, code: string, message: string) =>
   HttpResponse.json({ error: { code, message } }, { status })
 
 // The fake token for a user. The real backend signs a JWT; the mock only needs something recognizable

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { ApiError } from '../errors/ApiError';
-import { findUserByEmail, findUserById } from '../repositories/userRepository';
+import { DuplicateUserError, findUserByEmail, findUserById, insertUser } from '../repositories/userRepository';
 import { createAccessToken } from './tokenService';
 
 export interface PublicUser {
@@ -31,4 +31,23 @@ export const getPublicUserById = async (id: string): Promise<PublicUser | null> 
   if (!user) return null;
 
   return { id: user.id, name: user.username, email: user.email };
+};
+
+export const createUser = async (
+  username: string,
+  email: string,
+  password: string,
+): Promise<PublicUser> => {
+  const passwordHash = await bcrypt.hash(password, 12);
+  try {
+    const user = await insertUser(username, email, passwordHash);
+    return { id: user.id, name: user.username, email: user.email };
+  } catch (error) {
+    if (error instanceof DuplicateUserError) {
+      throw error.field === 'username'
+        ? new ApiError(409, 'USERNAME_ALREADY_TAKEN', 'Name is already in use.')
+        : new ApiError(409, 'EMAIL_ALREADY_REGISTERED', 'Email is already in use.');
+    }
+    throw error;
+  }
 };

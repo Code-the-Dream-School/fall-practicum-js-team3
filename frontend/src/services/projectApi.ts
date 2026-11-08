@@ -1,13 +1,11 @@
 import { apiRequest } from './apiClient';
-import type { Design } from '../hooks/useDesignStore';
+import type { CreateProjectPayload, Project, ProjectListResponse } from '../types/project';
 
-export interface Project {
-  id: string;
-  name: string;
-  difficulty: 'Brick' | 'Builder' | 'Engineer';
-  createdAt: string;
-  updatedAt: string;
-}
+export const createProject = (payload: CreateProjectPayload, token: string) =>
+  apiRequest<Project>('/projects', { method: 'POST', body: payload, token });
 
-export const createProject = (name: string, design: Design, token: string) =>
-  apiRequest<Project>('/projects', { method: 'POST', body: { name, design }, token });
+export const fetchProjects = (token: string, search = '', signal?: AbortSignal) => {
+  const trimmedSearch = search.trim();
+  const query = trimmedSearch ? `?search=${encodeURIComponent(trimmedSearch)}` : '';
+  return apiRequest<ProjectListResponse>(`/projects${query}`, { token, signal });
+};

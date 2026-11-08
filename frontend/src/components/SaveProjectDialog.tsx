@@ -9,17 +9,16 @@ import './SaveProjectDialog.css';
 
 interface SaveProjectDialogProps {
   onClose: () => void;
-  onSaved: (name: string) => void;
 }
 
-export default function SaveProjectDialog({ onClose, onSaved }: SaveProjectDialogProps) {
+export default function SaveProjectDialog({ onClose }: SaveProjectDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
   const project = useDesignStore((state) => state.project);
   const user = useAuthStore((state) => state.user);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<{ name: string }>({
-    defaultValues: { name: project?.userId === user?.id ? project?.name : '' },
+    defaultValues: { name: project && user && project.userId === user.id ? project.name : '' },
   });
 
   useEffect(() => {
@@ -39,15 +38,22 @@ export default function SaveProjectDialog({ onClose, onSaved }: SaveProjectDialo
     }
 
     try {
-      const saved = await createProject(name.trim(), useDesignStore.getState().toJSON(), token);
+      const saved = await createProject(
+        { name: name.trim(), design: useDesignStore.getState().toJSON() },
+        token,
+      );
       if (!saved || typeof saved.id !== 'string' || !saved.id || typeof saved.name !== 'string' || !saved.name) {
         throw new Error('The server returned an invalid project response.');
       }
       if (useAuthStore.getState().user?.id !== currentUser.id || useAuthStore.getState().token !== token) {
         throw new Error('Your session changed while saving. Sign in again to continue.');
       }
-      useDesignStore.getState().setProject({ id: saved.id, name: saved.name, userId: currentUser.id });
-      onSaved(saved.name);
+      useDesignStore.getState().markSaved({
+        id: saved.id,
+        name: saved.name,
+        userId: currentUser.id,
+      });
+      onClose();
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setNeedsLogin(true);
@@ -79,9 +85,9 @@ export default function SaveProjectDialog({ onClose, onSaved }: SaveProjectDialo
           disabled={isSubmitting}
           {...register('name', {
             validate: (value) => {
-              const name = value.trim();
-              if (!name) return 'Enter a project name.';
-              if (name.length > 100) return 'Project name must be at most 100 characters.';
+              const trimmedName = value.trim();
+              if (!trimmedName) return 'Enter a project name.';
+              if (trimmedName.length > 100) return 'Project name must be at most 100 characters.';
               return true;
             },
           })}
