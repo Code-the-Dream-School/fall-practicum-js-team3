@@ -20,8 +20,8 @@ The API will support the following MVP features:
 | Adding basic 3D shapes to a project | `POST /projects/:projectId/shapes` |4 |
 | Moving, rotating, and resizing shapes | `PATCH /shapes/:shapeId` | 4 |
 | Changing shape colors | `PATCH /shapes/:shapeId` | 4 |
-| Saving and loading projects | `/projects`, `PUT /projects/:projectId/shapes` | 3,5 |
-| Searching saved projects | `GET /projects?search=` | 3.2 |
+| Saving and loading projects | `POST /projects`, `GET /projects/:projectId` | 3,5 |
+| Searching saved projects (proposed) | `GET /projects?search=` | 3.2 |
 | Exporting projects to STL | `GET /projects/:projectId/export` | 6 |
 
 ### 1.2 General conventions
@@ -87,7 +87,7 @@ All errors use the same JSON structure:
 
 ### 1.6 Pagination and sorting
 
-Collection endpoints that can grow large (`GET /projects`) accept these query parameters. Shape lists are not paginated, because a project holds at most 500 shapes.
+The following pagination parameters are proposed; `GET /api/projects` does not yet support them. Shape lists are not paginated, because a project holds at most 500 shapes.
 
 | Parameter | Type | Default | Rules |
 | :--- | :--- | :--- | :--- |
@@ -273,12 +273,12 @@ A project represents a saved 3D model and contains its shapes. A project is owne
 | Method | Endpoint | Purpose | Authentication |
 |---|---|---|---|
 | POST | `/api/projects` | Create a project | Required |
-| GET | `/api/projects` | List projects, optionally filtered by name | Required |
+| GET | `/api/projects` | List the authenticated user's projects | Required |
 | GET | `/api/projects/:projectId` | Retrieve a project and its shapes | Required |
 | PATCH | `/api/projects/:projectId` | Update project details | Required |
 | DELETE | `/api/projects/:projectId` | Delete a project | Required |
 
-These endpoints are proposed and must be verified against the backend.
+The POST and GET endpoints are implemented. PATCH and DELETE are proposed.
 
 ### Project object
 
@@ -288,7 +288,8 @@ These endpoints are proposed and must be verified against the backend.
 | `name` | string | 1–100 characters after trimming |
 | `createdAt` | string | Creation time (ISO 8601, UTC) |
 | `updatedAt` | string | Last change to the project or any of its shapes |
-| `shapes` | array | Shape objects. Returned only by the retrieve endpoint. |
+| `difficulty` | string | Project difficulty |
+| `design` | object | Versioned scene data. Returned only by the retrieve endpoint. |
 
 ### 3.1 Create a Project
 
@@ -306,7 +307,7 @@ These endpoints are proposed and must be verified against the backend.
 | `difficulty` | string | No | `Brick`, `Builder` or `Engineer`. Defaults to `Brick`. |
 | `design` | object | No | The current scene: `{ "version": 1, "blocks": [...] }` with at most 500 blocks. Defaults to an empty scene. |
 
-Each block in `design.blocks` has `id` (integer, unique in the design), `type` (`cube`, `sphere`, `cylinder`, `cone`, `pyramid` or `torus`), `color` (`#RRGGBB`), `position` (`{ x, y, z }`, numbers between -1000000 and 1000000) and `scale` (greater than 0 and at most 1000).
+Each block in `design.blocks` has `id` (safe integer, unique in the design), `type` (`cube`, `sphere`, `cylinder`, `cone`, `pyramid` or `torus`), `color` (`#RRGGBB`), `position` (`{ x, y, z }`, numbers between -1000000 and 1000000) and `scale` (greater than 0 and at most 1000). Optional `rotation` is `{ x, y, z }` with finite values between -1000000 and 1000000; when omitted, it defaults to zero on all axes. Optional `dimensions` is `{ w, h, d }`, with each value greater than 0 and at most 1000; when omitted, each dimension defaults to `scale`. Both `scale` and `dimensions` are retained when supplied.
 
 ```json
 {
@@ -315,7 +316,7 @@ Each block in `design.blocks` has `id` (integer, unique in the design), `type` (
   "design": {
     "version": 1,
     "blocks": [
-      { "id": 1, "type": "cube", "color": "#0ea5e9", "position": { "x": 0, "y": 0, "z": 0 }, "scale": 1 },
+      { "id": 1, "type": "cube", "color": "#0ea5e9", "position": { "x": 0, "y": 0, "z": 0 }, "rotation": { "x": 0, "y": 0.5, "z": 0 }, "scale": 1, "dimensions": { "w": 1, "h": 2, "d": 3 } },
       { "id": 2, "type": "sphere", "color": "#ef4444", "position": { "x": 1.5, "y": 0, "z": 0 }, "scale": 2.5 }
     ]
   }
@@ -345,35 +346,26 @@ The response never includes the stored scene data. The `id` is a MongoDB ObjectI
 | 400 | `INVALID_REQUEST` | Body is missing, empty, not a JSON object, or not valid JSON |
 | 401 | `UNAUTHENTICATED` | Authentication is missing, invalid or expired |
 | 409 | `SHAPE_LIMIT_REACHED` | `design` contains more than 500 blocks |
-| 413 | `PAYLOAD_TOO_LARGE` | Request body is larger than the server limit (currently 128 KB) |
+| 413 | `PAYLOAD_TOO_LARGE` | Request body is larger than the 512 KB project limit |
 | 422 | `VALIDATION_ERROR` | `name` is missing, empty or longer than 100 characters, `difficulty` is unknown, or `design` is invalid. The message names the invalid field, for example `design.blocks[1].color`. |
 | 500 | `INTERNAL_ERROR` | Unexpected server error. Internal details are never returned. |
 
 The authentication check runs before the body is validated.
 
-### 3.2 List Projects and Search
+### 3.2 List Projects
 
 **Endpoint:** `GET /api/projects`
 
-**Purpose:** Retrieve the authenticated user's projects, optionally filtered by name.
+**Purpose:** Retrieve the authenticated user's projects, most recently saved first.
 
 **Authentication:** Required.
 
-**Query parameters:**
-
-- `search` (optional string) — filters projects by name.
-- If omitted, the endpoint returns the user's projects without a search filter.
+Search and pagination are not implemented yet.
 
 **Example request — list all projects:**
 
 ```http
 GET /api/projects
-```
-
-**Example request — search projects:**
-
-```http
-GET /api/projects?search=First
 ```
 
 **Example successful response — `200 OK`:**
@@ -382,8 +374,9 @@ GET /api/projects?search=First
 {
   "projects": [
     {
-      "id": "project_123",
+      "id": "64b7f0c2a1b2c3d4e5f60718",
       "name": "First Model",
+      "difficulty": "Builder",
       "createdAt": "2026-10-12T18:00:00Z",
       "updatedAt": "2026-10-12T18:00:00Z"
     }
@@ -395,8 +388,6 @@ GET /api/projects?search=First
 
 - `401 Unauthorized` — authentication is missing or invalid.
 - `500 Internal Server Error` — unexpected server error.
-
-The example response is illustrative. The actual response structure and search behavior should be discussed.
 
 ### 3.3 Retrieve a Project
 
@@ -413,31 +404,41 @@ The example response is illustrative. The actual response structure and search b
 **Example request:**
 
 ```http
-GET /api/projects/project_123
+GET /api/projects/64b7f0c2a1b2c3d4e5f60718
 ```
 
 **Example successful response — `200 OK`:**
 
 ```json
 {
-  "id": "project_123",
+  "id": "64b7f0c2a1b2c3d4e5f60718",
   "name": "First Model",
-  "shapes": [
-    {
-      "id": "shape_456",
-      "name": "Custom Sphere",
-      "geometry": {
-        "type": "sphere",
-        "radius": 1,
-        "segments": 16,
-        "rings": 8
+  "difficulty": "Builder",
+  "createdAt": "2026-10-12T18:00:00.000Z",
+  "updatedAt": "2026-10-12T18:00:00.000Z",
+  "design": {
+    "version": 1,
+    "blocks": [
+      {
+        "id": 1,
+        "type": "cube",
+        "color": "#0ea5e9",
+        "position": { "x": 0, "y": 0, "z": 0 },
+        "rotation": { "x": 0, "y": 0.5, "z": 0 },
+        "scale": 1,
+        "dimensions": { "w": 1, "h": 2, "d": 3 }
       },
-      "color": "#FF0000",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
-      "scale": [1, 1, 1]
-    }
-  ]
+      {
+        "id": 2,
+        "type": "sphere",
+        "color": "#ef4444",
+        "position": { "x": 1.5, "y": 0, "z": 0 },
+        "rotation": { "x": 0, "y": 0, "z": 0 },
+        "scale": 2.5,
+        "dimensions": { "w": 2.5, "h": 2.5, "d": 2.5 }
+      }
+    ]
+  }
 }
 ```
 
@@ -447,7 +448,7 @@ GET /api/projects/project_123
 - `404 Not Found` — the project does not exist or is not accessible to the user.
 - `500 Internal Server Error` — unexpected server error.
 
-This example assumes the project endpoint returns its shapes in the same response. 
+The design can be sent back to `POST /api/projects`. An invalid ID or a project owned by another user also returns `404`.
 
 ### 3.4 Update a Project
 
@@ -801,7 +802,9 @@ No response body.
 
 ## 5. Saving and Loading Projects
 
-A project is stored as a project record plus its shapes. The frontend can save in two ways.
+A new project and its complete design are saved together with `POST /api/projects` (section 3.1). Loading uses `GET /api/projects/:projectId` (section 3.3). Saving changes to an existing project and autosave are not implemented.
+
+The following alternatives are proposed:
 
 | Use | How | Endpoints |
 | :--- | :--- | :--- |
@@ -809,9 +812,11 @@ A project is stored as a project record plus its shapes. The frontend can save i
 | Explicit Save button | One request that stores the whole model | `PUT /api/projects/:projectId/shapes` (5.1) |
 | Load | One request that returns the project and all its shapes | `GET /api/projects/:projectId` (5.2) |
 
-Every change to a shape updates the project's `updatedAt`. When two browser tabs edit the same project, the last write wins in the MVP.
+The proposed shape endpoints would update the project's `updatedAt` after each change.
 
 ### 5.1 Replace All Shapes of a Project
+
+This endpoint is proposed and is not implemented.
 
 **Endpoint:** `PUT /api/projects/:projectId/shapes`
 
@@ -895,15 +900,9 @@ Every change to a shape updates the project's `updatedAt`. When two browser tabs
 
 ### 5.2 Loading a Project
 
-Loading needs no separate endpoint. `GET /api/v1/projects/:projectId` returns the project together with all its shapes, including each shape's geometry and properties, so the frontend can rebuild the whole model from one response. See the Projects section for the request and response format.
+Loading needs no separate endpoint. `GET /api/projects/:projectId` returns the project and its design so the frontend can rebuild the model. See section 3.3 for the response format.
 
 Export uses the last saved state of a project, so the frontend must save the project before it requests an STL export.
-
-The proposed API saves a project record separately from its shapes. The frontend may therefore create a project first and then create, update, or delete its shapes through the shape endpoints.
-
-If the frontend instead saves the entire model in one request, a project-level save endpoint and its complete request and response format must be documented.
-
-Loading must return enough information for the frontend to reconstruct the project, including each shape's geometry and properties.
 
 ## 6. STL Export
 
@@ -992,10 +991,9 @@ The 3D canvas is primarily a frontend feature and does not necessarily require i
 
 1. **Implemented routes:** Verify all endpoint paths, HTTP methods, and authentication requirements against the backend.
 2. **Authentication:** Confirm cookie-based sessions or bearer tokens and document the exact frontend behavior.
-3. **Project saving:** Decide whether the frontend saves projects and shapes separately or submits the entire model through one project-level endpoint.
+3. **Project updates:** Decide how subsequent saves update an existing project.
 4. **Geometry format:** Confirm supported shape types and their geometry fields, including whether custom vertices and faces are supported.
 5. **Response formats:** Confirm the exact fields, IDs, timestamps, and response wrappers returned by each endpoint.
 6. **Search scope:** Confirm whether search covers project names only and whether results are filtered by ownership.
 7. **STL export:** Confirm the file response format, filename, and whether export is synchronous or uses a background job.
 8. **Error behavior:** Verify status codes and response bodies for validation, authentication, authorization, and missing resources.
-

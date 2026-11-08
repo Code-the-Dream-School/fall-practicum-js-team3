@@ -16,6 +16,7 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
 // Shared security and request middleware.
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
+app.use('/api/projects', express.json({ limit: '512kb' }));
 app.use(express.json({ limit: '128kb' }));
 app.use(morgan('dev'));
 app.use(rateLimit({

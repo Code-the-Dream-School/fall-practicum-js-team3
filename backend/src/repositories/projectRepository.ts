@@ -10,6 +10,7 @@ interface SceneItem {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
   dimensions?: { w: number; h: number; d: number };
+  scale?: number;
   groupId?: string;
 }
 
@@ -32,6 +33,7 @@ const sceneDataSchema = new Schema<SceneItem>({
     h: Number,
     d: Number,
   },
+  scale: Number,
   groupId: { type: String, maxlength: 100 },
 }, { _id: false, strict: 'throw' });
 
@@ -59,6 +61,10 @@ export interface ProjectRecord {
   updatedAt: Date;
 }
 
+export interface ProjectDetail extends ProjectRecord {
+  design: { version: 1; blocks: DesignBlock[] };
+}
+
 export interface NewProject {
   userId: string;
   projectName: string;
@@ -66,15 +72,47 @@ export interface NewProject {
   blocks: DesignBlock[];
 }
 
-// The editor has no rotation or per-axis size yet, so rotation is 0 and scale fills `dimensions`.
 const toSceneItem = (block: DesignBlock): SceneItem => ({
   shapeId: String(block.id),
   type: block.type,
   colorHex: block.color,
   position: block.position,
-  rotation: { x: 0, y: 0, z: 0 },
-  dimensions: { w: block.scale, h: block.scale, d: block.scale },
+  rotation: block.rotation ?? { x: 0, y: 0, z: 0 },
+  dimensions: block.dimensions ?? { w: block.scale, h: block.scale, d: block.scale },
+  scale: block.scale,
 });
+
+interface ProjectMetadata {
+  _id: mongoose.Types.ObjectId;
+  projectName: string;
+  difficulty: Difficulty;
+  lastSaved?: Date;
+}
+
+const toProjectRecord = (project: ProjectMetadata): ProjectRecord => ({
+  id: project._id.toString(),
+  name: project.projectName,
+  difficulty: project.difficulty,
+  createdAt: project._id.getTimestamp(),
+  updatedAt: project.lastSaved ?? project._id.getTimestamp(),
+});
+
+const toDesignBlock = (item: SceneItem): DesignBlock => {
+  const id = Number(item.shapeId);
+  const scale = item.scale ?? item.dimensions?.w;
+  if (!Number.isSafeInteger(id) || scale === undefined) {
+    throw new Error('Stored project contains a shape that cannot be represented as a design block.');
+  }
+  return {
+    id,
+    type: item.type,
+    color: item.colorHex,
+    position: { x: item.position.x, y: item.position.y, z: item.position.z },
+    rotation: { x: item.rotation.x, y: item.rotation.y, z: item.rotation.z },
+    scale,
+    ...(item.dimensions && { dimensions: { w: item.dimensions.w, h: item.dimensions.h, d: item.dimensions.d } }),
+  };
+};
 
 // An object (not bare functions) so tests can replace `create` without a database.
 export const projectRepository = {
@@ -87,12 +125,25 @@ export const projectRepository = {
       lastSaved: new Date(),
     });
 
+    return toProjectRecord(created);
+  },
+
+  async list(userId: string): Promise<ProjectRecord[]> {
+    const projects = await ProjectModel.find({ userId }).sort({ lastSaved: -1, _id: -1 }).exec();
+    return projects.map(toProjectRecord);
+  },
+
+  async findById(userId: string, id: string): Promise<ProjectDetail | null> {
+    if (!mongoose.isValidObjectId(id)) return null;
+    const project = await ProjectModel.findOne({ _id: id, userId }).exec();
+    if (!project) return null;
+
     return {
-      id: created._id.toString(),
-      name: created.projectName,
-      difficulty: created.difficulty,
-      createdAt: created._id.getTimestamp(),
-      updatedAt: created.lastSaved ?? created._id.getTimestamp(),
+      ...toProjectRecord(project),
+      design: {
+        version: 1,
+        blocks: project.sceneData.map(toDesignBlock),
+      },
     };
   },
 };

@@ -14,6 +14,8 @@ export interface DesignBlock {
   color: string;
   position: { x: number; y: number; z: number };
   scale: number;
+  rotation?: { x: number; y: number; z: number };
+  dimensions?: { w: number; h: number; d: number };
 }
 
 export type DesignResult =
@@ -48,7 +50,7 @@ export const validateDesign = (design: unknown): DesignResult => {
     const path = `design.blocks[${index}]`;
     if (!isRecord(raw)) return invalid(`${path} must be an object.`);
 
-    const { id, type, color, position, scale } = raw;
+    const { id, type, color, position, scale, rotation, dimensions } = raw;
     if (typeof id !== 'number' || !Number.isSafeInteger(id)) {
       return invalid(`${path}.id must be an integer.`);
     }
@@ -71,6 +73,24 @@ export const validateDesign = (design: unknown): DesignResult => {
       return invalid(`${path}.scale must be greater than 0 and at most ${MAX_SCALE}.`);
     }
 
+    if (rotation !== undefined) {
+      if (!isRecord(rotation)) return invalid(`${path}.rotation must be an object.`);
+      for (const axis of ['x', 'y', 'z'] as const) {
+        if (!isCoordinate(rotation[axis])) {
+          return invalid(`${path}.rotation.${axis} must be a number between -1000000 and 1000000.`);
+        }
+      }
+    }
+    if (dimensions !== undefined) {
+      if (!isRecord(dimensions)) return invalid(`${path}.dimensions must be an object.`);
+      for (const axis of ['w', 'h', 'd'] as const) {
+        const value = dimensions[axis];
+        if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0 || value > MAX_SCALE) {
+          return invalid(`${path}.dimensions.${axis} must be greater than 0 and at most ${MAX_SCALE}.`);
+        }
+      }
+    }
+
     blocks.push({
       id,
       type: type as BlockType,
@@ -81,6 +101,12 @@ export const validateDesign = (design: unknown): DesignResult => {
         z: position.z as number,
       },
       scale,
+      ...(isRecord(rotation) && {
+        rotation: { x: rotation.x as number, y: rotation.y as number, z: rotation.z as number },
+      }),
+      ...(isRecord(dimensions) && {
+        dimensions: { w: dimensions.w as number, h: dimensions.h as number, d: dimensions.d as number },
+      }),
     });
   }
 

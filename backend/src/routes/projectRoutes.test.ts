@@ -13,6 +13,8 @@ import { projectRepository, type NewProject } from '../repositories/projectRepos
 const USER_ID = '11111111-2222-4333-8444-555555555555';
 
 const originalCreate = projectRepository.create;
+const originalList = projectRepository.list;
+const originalFindById = projectRepository.findById;
 let created: NewProject[] = [];
 let server: Server;
 let baseUrl: string;
@@ -55,6 +57,8 @@ before(async () => {
 
 after(async () => {
   projectRepository.create = originalCreate;
+  projectRepository.list = originalList;
+  projectRepository.findById = originalFindById;
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
@@ -72,7 +76,7 @@ beforeEach(() => {
   };
 });
 
-describe('POST /api/projects', () => {
+describe('project routes', () => {
   describe('success', () => {
     it('returns 201 with the project in the agreed shape', async () => {
       const result = await post({ name: 'First Model', design: { version: 1, blocks: [block()] } });
@@ -95,6 +99,17 @@ describe('POST /api/projects', () => {
       assert.equal(created[0].blocks.length, 1);
       assert.equal(created[0].blocks[0].id, 7);
       assert.equal(created[0].blocks[0].type, 'sphere');
+    });
+
+    it('passes rotation and per-axis dimensions to the repository without changing them', async () => {
+      const shape = block({
+        position: { x: -1, y: 2, z: 3 },
+        rotation: { x: 0.5, y: -1, z: 2 },
+        scale: 3,
+        dimensions: { w: 1, h: 2, d: 4 },
+      });
+      assert.equal((await post({ name: 'Transformed', design: { version: 1, blocks: [shape] } })).status, 201);
+      assert.deepEqual(created[0].blocks, [shape]);
     });
 
     it('accepts projectName and difficulty, and a name of exactly 100 characters', async () => {
@@ -151,6 +166,10 @@ describe('POST /api/projects', () => {
       ['missing position axis', { version: 1, blocks: [block({ position: { x: 0, y: 0 } })] }, 'design.blocks[0].position.z'],
       ['non-numeric position', { version: 1, blocks: [block({ position: { x: 'a', y: 0, z: 0 } })] }, 'design.blocks[0].position.x'],
       ['zero scale', { version: 1, blocks: [block({ scale: 0 })] }, 'design.blocks[0].scale'],
+      ['invalid rotation', { version: 1, blocks: [block({ rotation: { x: 0, y: 'bad', z: 0 } })] }, 'design.blocks[0].rotation.y'],
+      ['missing rotation axis', { version: 1, blocks: [block({ rotation: { x: 0, y: 0 } })] }, 'design.blocks[0].rotation.z'],
+      ['invalid dimension', { version: 1, blocks: [block({ dimensions: { w: 1, h: -1, d: 1 } })] }, 'design.blocks[0].dimensions.h'],
+      ['missing dimension', { version: 1, blocks: [block({ dimensions: { w: 1, h: 2 } })] }, 'design.blocks[0].dimensions.d'],
       ['duplicate ids', { version: 1, blocks: [block(), block()] }, 'design.blocks[1].id'],
     ];
 
@@ -162,6 +181,7 @@ describe('POST /api/projects', () => {
         assert.ok(result.body.error.message.includes(expected), result.body.error.message);
         assert.equal(created.length, 0);
       });
+
     }
 
     it('rejects more than 500 shapes with 409 SHAPE_LIMIT_REACHED', async () => {
@@ -174,6 +194,20 @@ describe('POST /api/projects', () => {
       const blocks = Array.from({ length: 500 }, (_, index) => block({ id: index + 1 }));
 
       assert.equal((await post({ name: 'max', design: { version: 1, blocks } })).status, 201);
+    });
+
+    it('accepts 500 fully transformed shapes exceeding 128 KB', async () => {
+      const blocks = Array.from({ length: 500 }, (_, id) => block({
+        id,
+        position: { x: 123456.123456789, y: -123456.123456789, z: 123456.123456789 },
+        rotation: { x: 1.123456789, y: 2.123456789, z: 3.123456789 },
+        scale: 1.123456789,
+        dimensions: { w: 1.123456789, h: 2.123456789, d: 3.123456789 },
+      }));
+      const body = { name: 'Full scene', design: { version: 1, blocks } };
+      assert.ok(Buffer.byteLength(JSON.stringify(body)) > 128 * 1024);
+      assert.equal((await post(body)).status, 201);
+      assert.deepEqual(created[0].blocks, blocks);
     });
   });
 
@@ -191,7 +225,7 @@ describe('POST /api/projects', () => {
     });
 
     it('rejects an oversized body with 413 PAYLOAD_TOO_LARGE', async () => {
-      assertError(await post({ name: 'x', padding: 'a'.repeat(200 * 1024) }), 413, 'PAYLOAD_TOO_LARGE');
+      assertError(await post({ name: 'x', padding: 'a'.repeat(513 * 1024) }), 413, 'PAYLOAD_TOO_LARGE');
       assert.equal(created.length, 0);
     });
   });
@@ -233,6 +267,51 @@ describe('POST /api/projects', () => {
 
       assertError(result, 500, 'INTERNAL_ERROR');
       assert.equal(JSON.stringify(result.body).includes('secret'), false);
+    });
+  });
+
+  describe('project listing and retrieval', () => {
+    const projectId = '64b7f0c2a1b2c3d4e5f60718';
+    const get = async (path: string, token: string | null = tokenFor(USER_ID)) => {
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(`${baseUrl}${path}`, { headers });
+      return { status: response.status, body: await response.json() };
+    };
+
+    it('lists only projects requested for the authenticated user', async () => {
+      let owner = '';
+      projectRepository.list = async (userId) => {
+        owner = userId;
+        return [];
+      };
+      const result = await get('/api/projects');
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body, { projects: [] });
+      assert.equal(owner, USER_ID);
+      assertError(await get('/api/projects', null), 401, 'UNAUTHENTICATED');
+    });
+
+    it('retrieves a design only for its authenticated owner', async () => {
+      const design = { version: 1 as const, blocks: [block()] };
+      let query: string[] = [];
+      projectRepository.findById = async (userId, id) => {
+        query = [userId, id];
+        return {
+          id, name: 'Mine', difficulty: 'Brick',
+          createdAt: new Date('2026-11-02T12:00:00Z'),
+          updatedAt: new Date('2026-11-02T12:00:00Z'),
+          design,
+        };
+      };
+      const result = await get(`/api/projects/${projectId}`);
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body.design, design);
+      assert.deepEqual(query, [USER_ID, projectId]);
+      assertError(await get(`/api/projects/${projectId}`, null), 401, 'UNAUTHENTICATED');
+
+      projectRepository.findById = async () => null;
+      assertError(await get(`/api/projects/${projectId}`), 404, 'NOT_FOUND');
     });
   });
 });
