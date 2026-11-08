@@ -1,5 +1,19 @@
 # Frontend Best Practices 
 
+## Project saving
+
+The editor's Save button is available after signing in. Enter a name of 1-100
+characters; the current design is sent to `POST /api/projects` with the access
+token. The returned project ID and name are kept in the editor store for future
+work. This endpoint creates a new project each time; updating an existing project
+and loading saved designs are not yet implemented.
+
+To develop without the backend, start the frontend with
+`VITE_USE_MOCKS=true npm run dev` from `frontend/`. Register and sign in using
+the mock forms before saving. Mock accounts and project responses are temporary;
+the mock does not persist projects or survive a page reload.
+Run `npm test` from `frontend/` for the store and API mock tests.
+
 This document outlines **React-specific best practices** for building maintainable,
 performant frontend applications. It is intended for students working on real-world
 full‑stack projects.

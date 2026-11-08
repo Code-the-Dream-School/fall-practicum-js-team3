@@ -1,0 +1,40 @@
+.save-dialog {
+  width: min(420px, calc(100% - 32px));
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  color: var(--text-main);
+  background: var(--bg-app);
+}
+
+.save-dialog::backdrop {
+  background: rgb(0 0 0 / 50%);
+}
+
+.save-dialog h2 {
+  margin: 0 0 16px;
+}
+
+.save-dialog label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.save-dialog input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+}
+
+.save-dialog [role="alert"] {
+  color: #b91c1c;
+}
+
+.save-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
