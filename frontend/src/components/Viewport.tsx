@@ -60,7 +60,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
   const meshesRef = useRef<Map<number, THREE.Mesh>>(new Map());
   const transformControlsRef = useRef<TransformControls | null>(null);
   const [webglError, setWebglError] = useState(false);
-  
+
 
   // Set up the 3D workspace.
   useEffect(() => {

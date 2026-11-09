@@ -3,5 +3,6 @@
   Each group of endpoints lives in its own file, for example authHandlers.ts.
 */
 import { authHandlers } from './authHandlers.ts'
+import { projectHandlers } from './projectHandlers.ts'
 
-export const handlers = [...authHandlers]
+export const handlers = [...authHandlers, ...projectHandlers]
