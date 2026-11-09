@@ -29,15 +29,20 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 const isFiniteNumber = (v: unknown): v is number =>
     typeof v === 'number' && Number.isFinite(v);
 
+const VEC3_KEYS = ['x', 'y', 'z']
+
 function checkVec3(v: unknown, path: string): string | null {
-    if (!isRecord(v)) return `${path} must be an object with x, y and z.`;
-    for (const axis of ['x', 'y', 'z']) {
-        const n = v[axis];
-        if (!isFiniteNumber(n) || Math.abs(n) > COORD_LIMIT) {
-            return `${path}.${axis} must be a number between -${COORD_LIMIT} and ${COORD_LIMIT}.`;
-        }
+  if (!isRecord(v)) return `${path} must be an object with x, y and z.`;
+  for (const key of Object.keys(v)) {
+    if (!VEC3_KEYS.includes(key)) return `${path}.${key} is not allowed.`;
+  }
+  for (const axis of VEC3_KEYS) {
+    const n = v[axis];
+    if (!isFiniteNumber(n) || Math.abs(n) > COORD_LIMIT) {
+      return `${path}.${axis} must be a number between -${COORD_LIMIT} and ${COORD_LIMIT}.`;
     }
-    return null;
+  }
+  return null;
 }
 
 function checkShape(s: unknown, path: string, ids: Set<number>): string | null {
