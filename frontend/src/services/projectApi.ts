@@ -10,3 +10,15 @@ export const fetchProjects = (token: string, search = '', signal?: AbortSignal) 
   const query = trimmedSearch ? `?search=${encodeURIComponent(trimmedSearch)}` : '';
   return apiRequest<ProjectListResponse>(`/projects${query}`, { token, signal });
 };
+
+// Deletes a project belonging to the logged-in user.
+// The backend should return 204 No Content on success.
+export const deleteProject = (token: string, projectId: string) => {
+  return apiRequest<void>(
+    `/projects/${encodeURIComponent(projectId)}`,
+    {
+      method: 'DELETE',
+      token,
+    }
+  );
+};
