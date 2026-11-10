@@ -107,10 +107,10 @@ function toSummary(record: ProjectRecord): ProjectSummary {
     };
 }
 
-// Shapes are free-form in MongoDB. This trusts what was saved; 
-// records edited by hand or from older versions aren't re-checked.- At least not yet. :)
+// blocks are free-form in MongoDB. This trusts what was saved; 
+// records edited by hand or from older versions aren't re-checked.
 function toProject(record: ProjectRecord): ProjectView {
-    const emptyDesign: Design = { schemaVersion: CURRENT_SCHEMA_VERSION, shapes: [] };
+    const emptyDesign: Design = { version: CURRENT_SCHEMA_VERSION, blocks: [] };
     return { ...toSummary(record), design: (record.design ?? emptyDesign) as Design };
 }
 
@@ -120,7 +120,7 @@ export async function createProject(owner: unknown, input: ProjectInput = {}): P
     assertOwner(owner);
     const name = cleanName(input.name);
     // A new project may start with an empty canvas.
-    const design = input.design ?? { schemaVersion: CURRENT_SCHEMA_VERSION, shapes: [] };
+    const design = input.design ?? { version: CURRENT_SCHEMA_VERSION, blocks: [] };
     assertValidDesign(design);
 
     const record = await Project.create({ owner, name, design });
@@ -142,7 +142,7 @@ export async function listProjects(owner: unknown, options: ListOptions = {}) {
 
     const [records, total] = await Promise.all([
         Project.find(filter)
-            .select('-design') // the library only needs names and dates, so skip the shapes
+            .select('-design') // the library only needs names and dates, so skip the blocks
             .sort({ [field]: direction, _id: direction }) // _id breaks ties so paging stays stable
             .skip(offset)
             .limit(limit)
@@ -161,7 +161,6 @@ export async function getProject(owner: unknown, id: unknown): Promise<ProjectVi
     const record = await Project.findOne({ _id: id, owner }).lean();
     return record ? toProject(record) : null;
 }
-
 
 export async function updateProject(
     owner: unknown,

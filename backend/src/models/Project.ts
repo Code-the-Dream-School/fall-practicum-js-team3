@@ -7,9 +7,9 @@ const projectSchema = new Schema(
         owner: { type: String, required: true },
         name: { type: String, required: true, trim: true, maxlength: 100 },
         design: {
-            schemaVersion: { type: Number, required: true },
+            version: { type: Number, required: true },
             // Contents are validated by the E2-T5 helper before they reach the model.
-            shapes: { type: [Schema.Types.Mixed], default: [] },
+            blocks: { type: [Schema.Types.Mixed], default: [] },
         },
     },
     { timestamps: true }

@@ -90,7 +90,7 @@ shared cluster.
   `null` for a project that is missing or belongs to someone else, and routes should
   answer `404` for both. The routes come with E3-T2 to E3-T5.
 - A project is `{ name, design }`. `name` is trimmed and 1 to 100 characters. `design`
-  is `{ schemaVersion, shapes }` with at most 500 shapes, and is checked by
+  is `{ version, blocks }` with at most 500 blocks, and is checked by
   `src/validation/projectDesign.ts` before it is saved.
 - `/api/projects` accepts bodies up to 1 MB. All other routes keep the 10 KB limit.
 

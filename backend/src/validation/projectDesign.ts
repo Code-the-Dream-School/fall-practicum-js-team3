@@ -15,7 +15,7 @@ export interface Shape {
     rotation?: Vec3;
     scale: number;
 }
-export interface Design { schemaVersion: number; shapes: Shape[] }
+export interface Design { version: number; blocks: Shape[] }
 
 export type DesignResult =
     | { valid: true }
@@ -85,7 +85,7 @@ function checkShape(s: unknown, path: string, ids: Set<number>): string | null {
 }
 
 // Returns the first problem found. The message names the field and array position,
-// for example "shapes[1].position.y must not be below 0."
+// for example "blocks[1].position.y must not be below 0."
 export function validateDesign(input: unknown): DesignResult {
     const fail = (
         message: string,
@@ -94,20 +94,20 @@ export function validateDesign(input: unknown): DesignResult {
 
     if (!isRecord(input)) return fail('design must be an object.');
     for (const key of Object.keys(input)) {
-        if (key !== 'schemaVersion' && key !== 'shapes') return fail(`design.${key} is not allowed.`);
+        if (key !== 'version' && key !== 'blocks') return fail(`design.${key} is not allowed.`);
     }
-    if (input.schemaVersion !== CURRENT_SCHEMA_VERSION) {
-        return fail(`design.schemaVersion must be ${CURRENT_SCHEMA_VERSION}.`);
+    if (input.version !== CURRENT_SCHEMA_VERSION) {
+        return fail(`design.version must be ${CURRENT_SCHEMA_VERSION}.`);
     }
-    const shapes = input.shapes;
-    if (!Array.isArray(shapes)) return fail('design.shapes must be an array.');
-    if (shapes.length > MAX_SHAPES) {
-        return fail(`A project holds at most ${MAX_SHAPES} shapes.`, 'SHAPE_LIMIT_REACHED');
+    const blocks = input.blocks;
+    if (!Array.isArray(blocks)) return fail('design.blocks must be an array.');
+    if (blocks.length > MAX_SHAPES) {
+        return fail(`A project holds at most ${MAX_SHAPES} blocks.`, 'SHAPE_LIMIT_REACHED');
     }
 
     const ids = new Set<number>();
-    for (let i = 0; i < shapes.length; i++) {
-        const error = checkShape(shapes[i], `shapes[${i}]`, ids);
+    for (let i = 0; i < blocks.length; i++) {
+        const error = checkShape(blocks[i], `blocks[${i}]`, ids);
         if (error) return fail(error);
     }
     return { valid: true };
