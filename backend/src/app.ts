@@ -15,7 +15,13 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
 // Shared security and request middleware.
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
+
+
+// Project saves contain large designs, so they need a higher limit.
+// Keep this above the global parser limit.
+app.use('/api/projects', express.json({ limit: '1mb' }));
 app.use(express.json({ limit: '10kb' }));
+
 app.use(morgan('dev'));
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
