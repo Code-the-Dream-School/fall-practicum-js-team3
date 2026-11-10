@@ -5,6 +5,7 @@
   - Delete shape removes it.
   Cancel gets the focus first, so pressing Enter by accident does not delete anything.
 */
+import { useEffect } from 'react'
 import './SaveProjectDialog.css'
 import './ConfirmDeleteShapeDialog.css'
 
@@ -14,13 +15,20 @@ interface ConfirmDeleteShapeDialogProps {
 }
 
 export default function ConfirmDeleteShapeDialog({ onConfirm, onCancel }: ConfirmDeleteShapeDialogProps) {
+  // Listen on the whole window, so Escape still works after a click outside the dialogue.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel])
+
   return (
     <div
       className='save-dialog-backdrop confirm-delete-backdrop'
       onContextMenu={(event) => event.preventDefault()}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') onCancel()
-      }}
     >
       <div className='save-dialog' role='dialog' aria-modal='true' aria-labelledby='delete-shape-title'>
         <h2 id='delete-shape-title'>Delete this shape?</h2>

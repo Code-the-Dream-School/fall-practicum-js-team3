@@ -38,10 +38,12 @@ function App() {
       .catch((err) => setError(err.message));
   }, []);
 
-  // The Delete key asks to delete the selected shape (not while typing or while a window is open).
+  // Delete or Backspace opens the "Delete this shape?" window for the selected shape.
+  // Backspace is needed because the "delete" key on a Mac sends Backspace, not Delete.
+  // Ignored while typing in a field or while a window is open.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Delete') return;
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
       if (selectedBlockId === null || isSaveDialogOpen || blockToDelete !== null) return;
 
       const target = event.target;
