@@ -112,4 +112,47 @@ test.describe('Login and logout (browser, mock backend)', () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/login$/);
   });
+
+  test('a logged-in user can open My Projects from the header', async ({ page }) => {
+    const email = uniqueEmail();
+    await registerAccount(page, 'Test User', email, 'password123');
+    await signIn(page, email, 'password123');
+    await expect(page.getByText('Hello, Test User')).toBeVisible();
+
+    await page.getByRole('link', { name: 'My Projects' }).click();
+
+    // A logged-in user is not sent back to the login page
+    await expect(page).toHaveURL(/\/projects$/);
+  });
+});
+
+test.describe('Form validation (browser, mock backend)', () => {
+  test('the login form asks for the email and the password when they are empty', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.getByRole('button', { name: 'Sign in' }).click();
+
+    await expect(page.getByText('Please enter your email.')).toBeVisible();
+    await expect(page.getByText('Please enter your password.')).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test('the register form shows validation errors and does not leave the page', async ({ page }) => {
+    await page.goto('/register');
+
+    // Empty form
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page.getByText('Please enter your name.')).toBeVisible();
+    await expect(page.getByText('Please enter your email.')).toBeVisible();
+    await expect(page.getByText('Please enter a password.')).toBeVisible();
+
+    // A wrong email and a short password
+    await page.getByLabel('Name').fill('Test User');
+    await page.getByLabel('Email').fill('not-an-email');
+    await page.getByLabel('Password').fill('short');
+    await page.getByRole('button', { name: 'Create account' }).click();
+    await expect(page.getByText('Please enter a valid email address.')).toBeVisible();
+    await expect(page.getByText('Password must be at least 8 characters.')).toBeVisible();
+    await expect(page).toHaveURL(/\/register$/);
+  });
 });
