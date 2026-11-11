@@ -1,0 +1,7 @@
+/* Same window as the Save dialog, but placed near the top and with a lighter backdrop,
+   so the shape that is about to be deleted stays visible. */
+.save-dialog-backdrop.confirm-delete-backdrop {
+  align-items: flex-start;
+  padding-top: 110px;
+  background: rgba(15, 23, 42, 0.12);
+}
