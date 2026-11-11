@@ -304,9 +304,12 @@ These endpoints are proposed and must be verified against the backend.
 
 ```json
 {
-  "name": "First Model"
+  "name": "First Model",
+  "design": { "version": 1, "blocks": [] }
 }
 ```
+
+`design` is the frontend's current scene (`toJSON()` of the design store). It is **not yet agreed with the backend**: the contract above defines only `name`, so the backend must confirm whether it accepts, stores or ignores `design`.
 
 **Example successful response — `201 Created`:**
 
