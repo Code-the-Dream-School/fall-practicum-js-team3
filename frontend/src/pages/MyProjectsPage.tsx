@@ -147,7 +147,9 @@ export default function MyProjectsPage() {
         debouncedSearch.trim() ? (
           <p>No projects match "{debouncedSearch.trim()}".</p>
         ) : (
-          <p>You have no projects yet. Create your first design!</p>
+          <p>No projects yet.{' '}
+            <Link to="/">Create your first project</Link>
+          </p>
         )
       )}
 
@@ -158,7 +160,8 @@ export default function MyProjectsPage() {
               <Link to={`/editor/${project.id}`}>{project.name}</Link>
               <span> {' '}Updated {new Date(project.updatedAt).toLocaleDateString()}</span>
               <button 
-                type="button" 
+                type="button"
+                aria-label={`Delete ${project.name}`} 
                 onClick={() => { 
                   setDeleteError('') 
                   setProjectToDelete(project)

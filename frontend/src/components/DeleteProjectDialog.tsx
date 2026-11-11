@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import './DeleteProjectDialog.css'
 
 type DeleteProjectDialogProps = {
@@ -15,6 +16,20 @@ export default function DeleteProjectDialog({
   isDeleting,
   errorMessage,
 }: DeleteProjectDialogProps) {
+
+  // Close the dialog with Escape unless deletion is in progress.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isDeleting) {
+        onCancel()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel, isDeleting])
+
   return (
     <div className="delete-dialog-overlay">
       <div
@@ -49,6 +64,7 @@ export default function DeleteProjectDialog({
             type="button"
             onClick={onCancel}
             disabled={isDeleting}
+            autoFocus
           >
             Cancel
           </button>
