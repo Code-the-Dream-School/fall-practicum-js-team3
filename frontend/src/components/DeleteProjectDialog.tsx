@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import './DeleteProjectDialog.css'
 
 type DeleteProjectDialogProps = {
@@ -16,12 +16,39 @@ export default function DeleteProjectDialog({
   isDeleting,
   errorMessage,
 }: DeleteProjectDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   // Close the dialog with Escape unless deletion is in progress.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !isDeleting) {
+        event.preventDefault()
         onCancel()
+      }
+
+      if (event.key !== 'Tab') return
+
+      const buttons = dialogRef.current?.querySelectorAll<HTMLButtonElement>(
+        'button:not(:disabled)'
+      )
+
+      if (!buttons?.length) {
+        event.preventDefault()
+        return
+      }
+
+      const firstButton = buttons[0]
+      const lastButton = buttons[buttons.length - 1]
+
+      if (event.shiftKey && document.activeElement === firstButton) {
+        event.preventDefault()
+        lastButton.focus()
+      } else if (!event.shiftKey && document.activeElement === lastButton) {
+        event.preventDefault()
+        firstButton.focus()
+      } else if (!dialogRef.current?.contains(document.activeElement)) {
+        event.preventDefault()
+        firstButton.focus()
       }
     }
 
@@ -33,11 +60,13 @@ export default function DeleteProjectDialog({
   return (
     <div className="delete-dialog-overlay">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
         className="delete-dialog"
+        tabIndex={-1}
       >
 
         <h2 id="delete-dialog-title">

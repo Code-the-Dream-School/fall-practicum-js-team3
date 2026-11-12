@@ -3,7 +3,7 @@
   The page is always in exactly one of these situations:
   loading, session expired, error, no projects yet, or showing the list.
 */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../hooks/useAuthStore.ts'
 import { ApiError } from '../services/apiClient.ts'
@@ -25,6 +25,8 @@ export default function MyProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
+    const headingRef = useRef<HTMLHeadingElement | null>(null)
 
   // Waits until the user stops typing for 300 ms before updating debouncedSearch
   useEffect(() => {
@@ -83,6 +85,9 @@ export default function MyProjectsPage() {
 
       // Close the confirmation dialog
       setProjectToDelete(null)
+      requestAnimationFrame(() => {
+        headingRef.current?.focus()
+      })
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setIsSessionExpired(true)
@@ -97,10 +102,24 @@ export default function MyProjectsPage() {
     }
   }
 
+  // Close the dialog and return focus to the original Delete button
+  function handleCancelDelete() {
+    if (isDeleting) return
+
+    setProjectToDelete(null)
+    setDeleteError('')
+
+    requestAnimationFrame(() => {
+      if (deleteButtonRef.current?.isConnected) {
+        deleteButtonRef.current.focus()
+      }
+    })
+  }
+
   return (
     <main>
       <div className='projects-header'>
-        <h1>My Projects</h1>
+        <h1 ref={headingRef} tabIndex={-1}>My Projects</h1>
         <button
           type='button'
           className='create-project-button'
@@ -162,7 +181,8 @@ export default function MyProjectsPage() {
               <button 
                 type="button"
                 aria-label={`Delete ${project.name}`} 
-                onClick={() => { 
+                onClick={(event) => {
+                  deleteButtonRef.current = event.currentTarget 
                   setDeleteError('') 
                   setProjectToDelete(project)
                 }}
@@ -178,11 +198,7 @@ export default function MyProjectsPage() {
       {projectToDelete && (
         <DeleteProjectDialog
           projectName={projectToDelete.name}
-          onCancel={() => {
-            if (isDeleting) return
-            setProjectToDelete(null)
-            setDeleteError('')
-          }}
+          onCancel={handleCancelDelete}
           onConfirm={handleDeleteProject}
           isDeleting={isDeleting}
           errorMessage={deleteError}
