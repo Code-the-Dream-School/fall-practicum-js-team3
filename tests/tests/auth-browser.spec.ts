@@ -1,5 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 
+// Values used by many tests, so they are easy to change in one place
+const TEST_NAME = 'Test User';
+const TEST_PASSWORD = 'password123';
+const GREETING = `Hello, ${TEST_NAME}`;
+
 // A new email for every call, so tests never depend on each other
 function uniqueEmail() {
   return `user-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -25,9 +30,9 @@ test.describe('Registration (browser, mock backend)', () => {
   test('a visitor can create an account and is sent to the login page', async ({ page }) => {
     await page.goto('/register');
 
-    await page.getByLabel('Name').fill('Test User');
+    await page.getByLabel('Name').fill(TEST_NAME);
     await page.getByLabel('Email').fill(uniqueEmail());
-    await page.getByLabel('Password').fill('password123');
+    await page.getByLabel('Password').fill(TEST_PASSWORD);
     await page.getByRole('button', { name: 'Create account' }).click();
 
     await expect(page).toHaveURL(/\/login$/);
@@ -39,9 +44,9 @@ test.describe('Registration (browser, mock backend)', () => {
 
     // First registration: succeeds and lands on the login page
     await page.goto('/register');
-    await page.getByLabel('Name').fill('Test User');
+    await page.getByLabel('Name').fill(TEST_NAME);
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('password123');
+    await page.getByLabel('Password').fill(TEST_PASSWORD);
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page).toHaveURL(/\/login$/);
 
@@ -52,7 +57,7 @@ test.describe('Registration (browser, mock backend)', () => {
     // Second registration with the same email
     await page.getByLabel('Name').fill('Another User');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('password123');
+    await page.getByLabel('Password').fill(TEST_PASSWORD);
     await page.getByRole('button', { name: 'Create account' }).click();
 
     await expect(page.getByText('This email is already registered.')).toBeVisible();
@@ -80,19 +85,19 @@ test.describe('Login and logout (browser, mock backend)', () => {
 
   test('a registered user can log in and sees their name in the header', async ({ page }) => {
     const email = uniqueEmail();
-    await registerAccount(page, 'Test User', email, 'password123');
+    await registerAccount(page, TEST_NAME, email, TEST_PASSWORD);
 
-    await signIn(page, email, 'password123');
+    await signIn(page, email, TEST_PASSWORD);
 
-    await expect(page).toHaveURL(/localhost:5173\/$/);
-    await expect(page.getByText('Hello, Test User')).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText(GREETING)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible();
   });
 
   test('an email with no account shows the same error', async ({ page }) => {
     await page.goto('/login');
 
-    await signIn(page, uniqueEmail(), 'password123');
+    await signIn(page, uniqueEmail(), TEST_PASSWORD);
 
     await expect(page.getByText('Email or password is incorrect.')).toBeVisible();
     await expect(page).toHaveURL(/\/login$/);
@@ -100,9 +105,9 @@ test.describe('Login and logout (browser, mock backend)', () => {
 
   test('logging out returns to the login page and closes the protected pages', async ({ page }) => {
     const email = uniqueEmail();
-    await registerAccount(page, 'Test User', email, 'password123');
-    await signIn(page, email, 'password123');
-    await expect(page.getByText('Hello, Test User')).toBeVisible();
+    await registerAccount(page, TEST_NAME, email, TEST_PASSWORD);
+    await signIn(page, email, TEST_PASSWORD);
+    await expect(page.getByText(GREETING)).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
     await expect(page).toHaveURL(/\/login$/);
@@ -111,18 +116,20 @@ test.describe('Login and logout (browser, mock backend)', () => {
     // The browser's Back button goes to the main page, which must send the visitor to login again
     await page.goBack();
     await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByText(GREETING)).toBeHidden();
   });
 
   test('a logged-in user can open My Projects from the header', async ({ page }) => {
     const email = uniqueEmail();
-    await registerAccount(page, 'Test User', email, 'password123');
-    await signIn(page, email, 'password123');
-    await expect(page.getByText('Hello, Test User')).toBeVisible();
+    await registerAccount(page, TEST_NAME, email, TEST_PASSWORD);
+    await signIn(page, email, TEST_PASSWORD);
+    await expect(page.getByText(GREETING)).toBeVisible();
 
     await page.getByRole('link', { name: 'My Projects' }).click();
 
     // A logged-in user is not sent back to the login page
     await expect(page).toHaveURL(/\/projects$/);
+    await expect(page.getByRole('heading', { name: 'My Projects' })).toBeVisible();
   });
 });
 
@@ -147,7 +154,7 @@ test.describe('Form validation (browser, mock backend)', () => {
     await expect(page.getByText('Please enter a password.')).toBeVisible();
 
     // A wrong email and a short password
-    await page.getByLabel('Name').fill('Test User');
+    await page.getByLabel('Name').fill(TEST_NAME);
     await page.getByLabel('Email').fill('not-an-email');
     await page.getByLabel('Password').fill('short');
     await page.getByRole('button', { name: 'Create account' }).click();
