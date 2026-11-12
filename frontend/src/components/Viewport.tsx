@@ -30,6 +30,7 @@ interface ViewportProps {
   onMoveBlock: (id: number, position: Block['position']) => void;
   onScaleBlock: (id: number, factor: number) => void;
   onRotateBlock: (id: number, rotation: Block['rotation']) => void;
+  onRequestDeleteBlock: (id: number) => void;
   transformMode: 'translate' | 'rotate';
 }
 
@@ -53,14 +54,14 @@ function createGeometry(type: BlockType): THREE.BufferGeometry {
     }
   }
 
-function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMoveBlock, onScaleBlock, onRotateBlock, transformMode,}: ViewportProps) {
+function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMoveBlock, onScaleBlock, onRotateBlock, onRequestDeleteBlock, transformMode,}: ViewportProps) {
   // Create an anchor point reference for our 3D container element
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const meshesRef = useRef<Map<number, THREE.Mesh>>(new Map());
   const transformControlsRef = useRef<TransformControls | null>(null);
   const [webglError, setWebglError] = useState(false);
-  
+
 
   // Set up the 3D workspace.
   useEffect(() => {
@@ -187,6 +188,42 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
      
     renderer.domElement.addEventListener('click', handleCanvasClick);
 
+    // Right click on a block asks the app to delete it.
+    // The right mouse button also pans the camera, so only a click without movement counts.
+    let rightButtonDownAt: { x: number; y: number } | null = null;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 2) return;
+      rightButtonDownAt = { x: event.clientX, y: event.clientY };
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (event.button !== 2 || !rightButtonDownAt) return;
+
+      const moved = Math.hypot(event.clientX - rightButtonDownAt.x, event.clientY - rightButtonDownAt.y);
+      rightButtonDownAt = null;
+      if (moved > 5) return; // the camera was dragged, not clicked
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersections = raycaster.intersectObjects(Array.from(meshesRef.current.values()));
+      if (intersections.length === 0) return;
+
+      const blockId = intersections[0].object.userData.blockId as number;
+      onSelectBlock(blockId); // so the shape is highlighted behind the confirmation window
+      onRequestDeleteBlock(blockId);
+    };
+
+    // Hide the browser's own right-click menu on the canvas.
+    const handleContextMenu = (event: MouseEvent) => event.preventDefault();
+
+    renderer.domElement.addEventListener('pointerdown', handlePointerDown);
+    renderer.domElement.addEventListener('pointerup', handlePointerUp);
+    renderer.domElement.addEventListener('contextmenu', handleContextMenu);
+
     // Shift + mouse wheel makes the selected shape bigger or smaller.
     const handleWheel = (event: WheelEvent) => {
       if (!event.shiftKey) return; // normal wheel: the camera zooms
@@ -235,6 +272,9 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       renderer.domElement.removeEventListener('click', handleCanvasClick);
+      renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
+      renderer.domElement.removeEventListener('pointerup', handlePointerUp);
+      renderer.domElement.removeEventListener('contextmenu', handleContextMenu);
       container.removeEventListener('wheel', handleWheel, { capture: true });
       
       
@@ -263,7 +303,7 @@ function Viewport({ error, message, blocks, selectedBlockId, onSelectBlock, onMo
 
       sceneRef.current = null;
     };
-  }, [onSelectBlock, onMoveBlock, onScaleBlock, onRotateBlock]);
+  }, [onSelectBlock, onMoveBlock, onScaleBlock, onRotateBlock, onRequestDeleteBlock]);
 
     useEffect(() => {
       transformControlsRef.current?.setMode(transformMode);
