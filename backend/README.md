@@ -94,6 +94,40 @@ shared cluster.
   `src/validation/projectDesign.ts` before it is saved.
 - `/api/projects` accepts bodies up to 1 MB. All other routes keep the 10 KB limit.
 
+### `POST /api/projects`
+
+Creates a project for the authenticated user. Send the access token as
+`Authorization: Bearer <token>`. The project owner is always taken from the JWT
+subject; any `owner` field in the request body is ignored.
+
+Request JSON:
+
+```json
+{
+  "name": "My first design",
+  "design": { "version": 1, "blocks": [] }
+}
+```
+
+`name` is required, trimmed, and must contain 1 to 100 characters. `design` is
+required and must pass the shared project design validator. Requests larger than
+1 MB return `413`.
+
+On success, returns `201` with the created project:
+
+```json
+{
+  "id": "665f1a2b3c4d5e6f78901234",
+  "name": "My first design",
+  "createdAt": "2026-11-11T12:00:00.000Z",
+  "updatedAt": "2026-11-11T12:00:00.000Z"
+}
+```
+
+Errors use `{ "error": { "code", "message" } }`: `400 VALIDATION_ERROR` for
+an invalid body, name, or design; `401 UNAUTHENTICATED` for a missing or invalid
+token; and `413 PAYLOAD_TOO_LARGE` when the request exceeds the body limit.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 
