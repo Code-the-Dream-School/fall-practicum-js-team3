@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { ApiError } from './errors/ApiError';
 import authRoutes from './routes/authRoutes';
+import projectRoutes from './routes/projectRoutes';
 
 const app: Application = express();
 
@@ -35,6 +36,7 @@ app.use(rateLimit({
 
 // Auth routes.
 app.use('/api/auth', authRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Preserve the canvas frontend's existing API request.
 app.get('/api/hello', (_req: Request, res: Response) => {
