@@ -3,14 +3,16 @@
   The page is always in exactly one of these situations:
   loading, session expired, error, no projects yet, or showing the list.
 */
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../hooks/useAuthStore.ts'
 import { ApiError } from '../services/apiClient.ts'
-import { fetchProjects } from '../services/projectApi.ts'
+import { fetchProjects, deleteProject } from '../services/projectApi.ts'
 import type { Project } from '../types/project.ts'
+import DeleteProjectDialog from '../components/DeleteProjectDialog.tsx'
 
 export default function MyProjectsPage() {
+  const navigate = useNavigate()
   const token = useAuthStore((state) => state.token)
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -20,12 +22,17 @@ export default function MyProjectsPage() {
   const [retryCount, setRetryCount] = useState(0)
   const [searchText, setSearchText] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
+    const headingRef = useRef<HTMLHeadingElement | null>(null)
 
   // Waits until the user stops typing for 300 ms before updating debouncedSearch
   useEffect(() => {
-  const timerId = setTimeout(() => setDebouncedSearch(searchText), 300)
-  // If the user types again before 300 ms pass, the old timer is cancelled
-  return () => clearTimeout(timerId)
+    const timerId = setTimeout(() => setDebouncedSearch(searchText), 300)
+    // If the user types again before 300 ms pass, the old timer is cancelled
+    return () => clearTimeout(timerId)
   }, [searchText])
 
   useEffect(() => {
@@ -58,9 +65,69 @@ export default function MyProjectsPage() {
     return () => controller.abort()
   }, [token, retryCount, debouncedSearch])
 
+    // Deletes the selected project after the user confirms
+  async function handleDeleteProject() {
+    if (!projectToDelete || !token || isDeleting) return
+
+    const projectId = projectToDelete.id
+
+    setIsDeleting(true)
+    setDeleteError('')
+
+    try {
+      // Send the DELETE request to the backend
+      await deleteProject(token, projectId)
+
+      // Remove the project from the list only after successful deletion
+      setProjects((currentProjects) =>
+        currentProjects.filter((project) => project.id !== projectId)
+      )
+
+      // Close the confirmation dialog
+      setProjectToDelete(null)
+      requestAnimationFrame(() => {
+        headingRef.current?.focus()
+      })
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setIsSessionExpired(true)
+        setProjectToDelete(null)
+      } else {
+        // Keep the dialog open so the user can retry
+        setDeleteError('Could not delete the project. Please try again.')
+      }
+    } finally {
+      // Re-enable the buttons
+      setIsDeleting(false)
+    }
+  }
+
+  // Close the dialog and return focus to the original Delete button
+  function handleCancelDelete() {
+    if (isDeleting) return
+
+    setProjectToDelete(null)
+    setDeleteError('')
+
+    requestAnimationFrame(() => {
+      if (deleteButtonRef.current?.isConnected) {
+        deleteButtonRef.current.focus()
+      }
+    })
+  }
+
   return (
     <main>
-      <h1>My Projects</h1>
+      <div className='projects-header'>
+        <h1 ref={headingRef} tabIndex={-1}>My Projects</h1>
+        <button
+          type='button'
+          className='create-project-button'
+          onClick={() => navigate('/')}
+        >
+          + Create New Project
+        </button>
+      </div>
 
       <label>
         Search projects{' '}
@@ -83,10 +150,13 @@ export default function MyProjectsPage() {
         <p>Your session has expired. <Link to='/login'>Sign in again</Link></p>
       )}
 
-      {!isLoading && errorMessage && (
+      {!isLoading && !isSessionExpired && errorMessage && (
         <p role='alert'>
           {errorMessage}{' '}
-          <button type='button' onClick={() => setRetryCount((count) => count + 1)}>
+          <button 
+            type='button' 
+            onClick={() => setRetryCount((count) => count + 1)}
+          >
             Try again
           </button>
         </p>
@@ -96,7 +166,9 @@ export default function MyProjectsPage() {
         debouncedSearch.trim() ? (
           <p>No projects match "{debouncedSearch.trim()}".</p>
         ) : (
-          <p>You have no projects yet. <Link to='/'>Start building</Link></p>
+          <p>No projects yet.{' '}
+            <Link to="/">Create your first project</Link>
+          </p>
         )
       )}
 
@@ -105,11 +177,34 @@ export default function MyProjectsPage() {
           {projects.map((project) => (
             <li key={project.id}>
               <Link to={`/editor/${project.id}`}>{project.name}</Link>
-              <span> Updated {new Date(project.updatedAt).toLocaleDateString()}</span>
+              <span> {' '}Updated {new Date(project.updatedAt).toLocaleDateString()}</span>
+              <button 
+                type="button"
+                aria-label={`Delete ${project.name}`} 
+                onClick={(event) => {
+                  deleteButtonRef.current = event.currentTarget 
+                  setDeleteError('') 
+                  setProjectToDelete(project)
+                }}
+              >
+                Delete
+              </button>
             </li>
           ))}
         </ul>
       )}
+
+      {/* Delete confirmation dialog */}
+      {projectToDelete && (
+        <DeleteProjectDialog
+          projectName={projectToDelete.name}
+          onCancel={handleCancelDelete}
+          onConfirm={handleDeleteProject}
+          isDeleting={isDeleting}
+          errorMessage={deleteError}
+        />
+      )}
+
     </main>
   )
 }
