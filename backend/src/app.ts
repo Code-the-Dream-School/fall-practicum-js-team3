@@ -36,6 +36,7 @@ app.use(rateLimit({
 
 // Auth routes.
 app.use('/api/auth', authRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Project routes.
 app.use('/api/projects', projectRoutes);

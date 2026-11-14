@@ -116,7 +116,7 @@ function toProject(record: ProjectRecord): ProjectView {
 
 // ---- data access ----
 
-export async function createProject(owner: unknown, input: ProjectInput = {}): Promise<ProjectView> {
+export async function createProject(owner: unknown, input: ProjectInput = {}): Promise<ProjectSummary> {
     assertOwner(owner);
     const name = cleanName(input.name);
     // A new project may start with an empty canvas.
@@ -124,7 +124,7 @@ export async function createProject(owner: unknown, input: ProjectInput = {}): P
     assertValidDesign(design);
 
     const record = await Project.create({ owner, name, design });
-    return toProject(record);
+    return toSummary(record);
 }
 
 export async function listProjects(owner: unknown, options: ListOptions = {}) {
@@ -186,6 +186,8 @@ export async function updateProject(
     return record ? toProject(record) : null;
 }
 
+
+// Delete a project belonging to the authenticated user
 export async function deleteProject(
   owner: unknown,
   id: unknown,
@@ -194,7 +196,8 @@ export async function deleteProject(
 
   if (!mongoose.isObjectIdOrHexString(id)) return false
 
-  const result = await Project.deleteOne({ _id: id, owner })  // Delete only a project belonging to the authenticated user
+  const result = await Project.deleteOne({ _id: id, owner })  
 
   return result.deletedCount === 1
 }
+

@@ -1,11 +1,22 @@
-
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
-import { deleteProjectController } from '../controllers/projectController';
+import { validateCreateProjectBody } from '../middleware/projectValidation';
+import { makeCreateProjectHandler, deleteProjectController } from '../controllers/projectController';
+import type { ProjectSummary } from '../repositories/projectRepository';
+import type { CreateProjectBody } from '../middleware/projectValidation';
 
-const router = Router();
+type CreateProject = (owner: unknown, input: CreateProjectBody) => Promise<ProjectSummary>;
 
-// DELETE /api/projects/:projectId
-router.delete('/:projectId', requireAuth, deleteProjectController);
+export const makeProjectRouter = (create?: CreateProject) => {
+  const router = Router();
 
-export default router;
+//POST
+  router.post('/', requireAuth, validateCreateProjectBody, makeCreateProjectHandler(create));
+
+// DELETE
+  router.delete('/:projectId', requireAuth, deleteProjectController);
+
+    return router;
+};
+export default makeProjectRouter();
+
