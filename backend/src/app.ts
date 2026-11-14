@@ -38,6 +38,9 @@ app.use(rateLimit({
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 
+// Project routes.
+app.use('/api/projects', projectRoutes);
+
 // Preserve the canvas frontend's existing API request.
 app.get('/api/hello', (_req: Request, res: Response) => {
   res.status(200).json({ message: 'Hello World' });
