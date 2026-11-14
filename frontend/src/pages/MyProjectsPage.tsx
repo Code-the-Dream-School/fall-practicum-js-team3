@@ -10,6 +10,7 @@ import { ApiError } from '../services/apiClient.ts'
 import { fetchProjects, deleteProject } from '../services/projectApi.ts'
 import type { Project } from '../types/project.ts'
 import DeleteProjectDialog from '../components/DeleteProjectDialog.tsx'
+import DeleteSuccessDialog from '../components/DeleteSuccessDialog.tsx'
 
 export default function MyProjectsPage() {
   const navigate = useNavigate()
@@ -25,8 +26,10 @@ export default function MyProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false)
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
-    const headingRef = useRef<HTMLHeadingElement | null>(null)
+  const headingRef = useRef<HTMLHeadingElement | null>(null)
 
   // Waits until the user stops typing for 300 ms before updating debouncedSearch
   useEffect(() => {
@@ -85,6 +88,8 @@ export default function MyProjectsPage() {
 
       // Close the confirmation dialog
       setProjectToDelete(null)
+      setShowDeleteSuccess(true)
+      setSuccessMessage('Project deleted successfully.')
       requestAnimationFrame(() => {
         headingRef.current?.focus()
       })
@@ -202,6 +207,17 @@ export default function MyProjectsPage() {
           onConfirm={handleDeleteProject}
           isDeleting={isDeleting}
           errorMessage={deleteError}
+        />
+      )}
+
+      {showDeleteSuccess && (
+        <DeleteSuccessDialog
+          onClose={() => {
+            setShowDeleteSuccess(false)
+            requestAnimationFrame(() => {
+              headingRef.current?.focus()
+            })
+          }}
         />
       )}
 
