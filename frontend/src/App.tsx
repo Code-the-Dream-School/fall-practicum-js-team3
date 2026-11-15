@@ -71,6 +71,7 @@ function App() {
         onSave={() => setIsSaveDialogOpen(true)}
         canSave={isLoggedIn}
         saveStatus={saveStatus}
+        projectName={project?.name ?? 'My awesome robot'}
       />
       <div className="cad-workspace">
         <Sidebar
