@@ -6,12 +6,14 @@ import SaveProjectDialog from './components/SaveProjectDialog';
 import ConfirmDeleteShapeDialog from './components/ConfirmDeleteShapeDialog';
 import { useAuthStore } from './hooks/useAuthStore';
 import { useDesignStore } from './hooks/useDesignStore';
+import OpenProjectDialog from './components/OpenProjectDialog';
 import './App.css'
 
 function App() {
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
   const [blockToDelete, setBlockToDelete] = useState<number | null>(null);
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
 
@@ -44,7 +46,7 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Delete' && event.key !== 'Backspace') return;
-      if (selectedBlockId === null || isSaveDialogOpen || blockToDelete !== null) return;
+      if (selectedBlockId === null || isSaveDialogOpen || isOpenDialogOpen || blockToDelete !== null) return;
 
       const target = event.target;
       if (
@@ -59,7 +61,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedBlockId, isSaveDialogOpen, blockToDelete]);
+  }, [selectedBlockId, isSaveDialogOpen, isOpenDialogOpen, blockToDelete]);
 
   let saveStatus = '';
   if (isDirty) saveStatus = 'Unsaved changes.';
@@ -70,6 +72,8 @@ function App() {
       <Topbar
         onSave={() => setIsSaveDialogOpen(true)}
         canSave={isLoggedIn}
+        onLoad={() => setIsOpenDialogOpen(true)}
+        canLoad={isLoggedIn}
         saveStatus={saveStatus}
         projectName={project?.name ?? 'My awesome robot'}
       />
@@ -94,6 +98,7 @@ function App() {
         />
       </div>
       {isSaveDialogOpen && <SaveProjectDialog onClose={() => setIsSaveDialogOpen(false)} />}
+      {isOpenDialogOpen && <OpenProjectDialog onClose={() => setIsOpenDialogOpen(false)} />}
       {blockToDelete !== null && (
         <ConfirmDeleteShapeDialog
           onConfirm={() => {
