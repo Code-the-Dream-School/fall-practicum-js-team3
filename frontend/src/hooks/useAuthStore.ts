@@ -21,6 +21,7 @@
 import { create } from 'zustand'
 import { fetchCurrentUser, loginUser, logoutUser } from '../services/authApi'
 import { ApiError } from '../services/apiClient'
+import { useDesignStore } from './useDesignStore'
 import type { LoginPayload, User } from '../types/auth'
 
 // The name under which the token is saved in the browser
@@ -55,9 +56,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (token) await logoutUser(token)
     } catch {
       // Even if the server call fails, the user must still be logged out here
+    } finally {
+      useDesignStore.getState().reset()
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
+      set({ token: null, user: null, sessionError: null })
     }
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
-    set({ token: null, user: null, sessionError: null })
   },
 
   async loadUser(signal) {
