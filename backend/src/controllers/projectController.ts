@@ -23,24 +23,31 @@ export const makeCreateProjectHandler = (create: CreateProject = saveProject) =>
   };
 
 // DELETE PROJECT
-export async function deleteProjectController(
+type DeleteProject = (owner: unknown, id: unknown) => Promise<boolean>;
+
+export const makeDeleteProjectHandler = (
+  remove: DeleteProject = deleteProject,
+) =>
+  async (
   req: Request,
   res: Response,
   next: NextFunction,
-): Promise<void> {
-  try {
-    const userId = res.locals.userId;
-    const projectId = req.params.projectId;
-    const deleted = await deleteProject(userId, projectId);
-    if (!deleted) {
-      throw new ApiError(404, 'PROJECT_NOT_FOUND', 'Project not found.');
-    }
+): Promise<void> => {
+    try {
+      const userId = res.locals.userId;
+      const projectId = req.params.projectId;
+      const deleted = await remove(userId, projectId);
+      if (!deleted) {
+        throw new ApiError(404, 'PROJECT_NOT_FOUND', 'Project not found.');
+      }
 
-    res.status(204).send();
-  } catch (error) {
-    next(error);
-  }
-}
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+export const deleteProjectController = makeDeleteProjectHandler();
 
 // GET PROJECTS 
 export async function getProjectsController(
