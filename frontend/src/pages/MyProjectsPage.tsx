@@ -26,7 +26,6 @@ export default function MyProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false)
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
   const headingRef = useRef<HTMLHeadingElement | null>(null)
@@ -89,7 +88,6 @@ export default function MyProjectsPage() {
       // Close the confirmation dialog
       setProjectToDelete(null)
       setShowDeleteSuccess(true)
-      setSuccessMessage('Project deleted successfully.')
       requestAnimationFrame(() => {
         headingRef.current?.focus()
       })
