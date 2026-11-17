@@ -116,7 +116,7 @@ function toProject(record: ProjectRecord): ProjectView {
 
 // ---- data access ----
 
-export async function createProject(owner: unknown, input: ProjectInput = {}): Promise<ProjectView> {
+export async function createProject(owner: unknown, input: ProjectInput = {}): Promise<ProjectSummary> {
     assertOwner(owner);
     const name = cleanName(input.name);
     // A new project may start with an empty canvas.
@@ -124,7 +124,7 @@ export async function createProject(owner: unknown, input: ProjectInput = {}): P
     assertValidDesign(design);
 
     const record = await Project.create({ owner, name, design });
-    return toProject(record);
+    return toSummary(record);
 }
 
 export async function listProjects(owner: unknown, options: ListOptions = {}) {

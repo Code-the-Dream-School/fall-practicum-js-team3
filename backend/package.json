@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch server.js",
     "build": "tsc",
+    "test": "node --import tsx --test src/routes/projectRoutes.test.ts",
     "db:setup": "tsx src/db/runMigrations.ts",
     "start": "node dist/server.js"
   },
