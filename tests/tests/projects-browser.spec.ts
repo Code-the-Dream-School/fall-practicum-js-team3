@@ -5,6 +5,9 @@ const TEST_NAME = 'Test User';
 const TEST_PASSWORD = 'password123';
 const GREETING = `Hello, ${TEST_NAME}`;
 
+// The 5 projects whose names contain "rob", in the order the mock server returns them
+const ROBOT_PROJECTS = ['Robot 2', 'Robot', 'ROBOT PARTY', 'Robot dog', 'Super robot arm'];
+
 // A new email for every call, so tests never depend on each other
 function uniqueEmail() {
   return `user-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
@@ -33,6 +36,21 @@ async function openMyProjects(page: Page) {
   await page.getByRole('link', { name: 'My Projects' }).click();
   await expect(page).toHaveURL(/\/projects$/);
   await expect(page.getByRole('heading', { name: 'My Projects' })).toBeVisible();
+}
+
+// Signs in, opens My Projects and waits until all 12 sample projects are on the page
+async function openMyProjectsWithFullList(page: Page) {
+  await registerAndSignIn(page);
+  await openMyProjects(page);
+  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(12);
+}
+
+function projectLinks(page: Page) {
+  return page.getByRole('main').getByRole('listitem').getByRole('link');
+}
+
+function searchBox(page: Page) {
+  return page.getByLabel('Search projects');
 }
 
 // Playwright's own request interception does not see requests answered by the mock service worker,
@@ -65,6 +83,27 @@ async function restoreProjectsAnswer(page: Page) {
     if (w.__realFetch) window.fetch = w.__realFetch;
   });
 }
+
+// Counts the requests for projects, so a test can check how many were sent while typing
+async function startCountingProjectsRequests(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { __projectsRequests?: number };
+    w.__projectsRequests = 0;
+    const realFetch = window.fetch.bind(window);
+
+    window.fetch = (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes('/projects')) w.__projectsRequests = (w.__projectsRequests ?? 0) + 1;
+      return realFetch(input, init);
+    };
+  });
+}
+
+async function projectsRequestCount(page: Page) {
+  return page.evaluate(() => (window as unknown as { __projectsRequests?: number }).__projectsRequests ?? 0);
+}
+
+// ---------- States ----------
 
 test.describe('My Projects page states (browser, mock backend)', () => {
   test('shows a loading message and then the 12 sample projects, newest first', async ({ page }) => {
@@ -120,43 +159,6 @@ test.describe('My Projects page states (browser, mock backend)', () => {
 });
 
 // ---------- Search ----------
-
-// The 5 projects whose names contain "rob", in the order the mock server returns them
-const ROBOT_PROJECTS = ['Robot 2', 'Robot', 'ROBOT PARTY', 'Robot dog', 'Super robot arm'];
-
-// Signs in, opens My Projects and waits until all 12 sample projects are on the page
-async function openMyProjectsWithFullList(page: Page) {
-  await registerAndSignIn(page);
-  await openMyProjects(page);
-  await expect(page.getByRole('main').getByRole('listitem')).toHaveCount(12);
-}
-
-function projectLinks(page: Page) {
-  return page.getByRole('main').getByRole('listitem').getByRole('link');
-}
-
-function searchBox(page: Page) {
-  return page.getByLabel('Search projects');
-}
-
-// Counts the requests for projects, so a test can check how many were sent while typing
-async function startCountingProjectsRequests(page: Page) {
-  await page.evaluate(() => {
-    const w = window as unknown as { __projectsRequests?: number };
-    w.__projectsRequests = 0;
-    const realFetch = window.fetch.bind(window);
-
-    window.fetch = (input, init) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url.includes('/projects')) w.__projectsRequests = (w.__projectsRequests ?? 0) + 1;
-      return realFetch(input, init);
-    };
-  });
-}
-
-async function projectsRequestCount(page: Page) {
-  return page.evaluate(() => (window as unknown as { __projectsRequests?: number }).__projectsRequests ?? 0);
-}
 
 test.describe('My Projects search (browser, mock backend)', () => {
   // Small letters, capital letters and a mix all find the same 5 projects
@@ -254,5 +256,34 @@ test.describe('My Projects search (browser, mock backend)', () => {
 
     // One request for "rob", not one for "r", "ro" and "rob"
     expect(await projectsRequestCount(page)).toBe(1);
+  });
+});
+
+// ---------- Saving a project ----------
+
+test.describe('Saving a project (browser, mock backend)', () => {
+  test('a project saved in the editor appears first in My Projects', async ({ page }) => {
+    const projectName = `Saved by test ${Date.now()}`;
+    await registerAndSignIn(page);
+
+    // Build something, so there is a design to save
+    await page.getByRole('button', { name: 'Cube' }).click();
+    await expect(page.getByText('Unsaved changes.')).toBeVisible();
+
+    // Save it. The Save project button in the top bar opens the dialog; the Save button is inside the dialog.
+    await page.getByRole('button', { name: 'Save project' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: 'Save project' })).toBeVisible();
+    await dialog.getByLabel('Project name').fill(projectName);
+    await dialog.getByRole('button', { name: 'Save' }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText(`Saved as "${projectName}".`)).toBeVisible();
+
+    // The new project is in the list, and it is the newest one, so it comes first
+    await openMyProjects(page);
+    const projects = page.getByRole('main').getByRole('listitem');
+    await expect(projects).toHaveCount(13);
+    await expect(projects.first().getByRole('link')).toHaveText(projectName);
   });
 });
