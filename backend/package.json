@@ -7,7 +7,8 @@
     "dev": "tsx watch server.js",
     "build": "tsc",
     "db:setup": "tsx src/db/runMigrations.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "tsx --test src/middleware/requireAuth.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
