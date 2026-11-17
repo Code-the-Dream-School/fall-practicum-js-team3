@@ -6,7 +6,9 @@ import { delay, http, HttpResponse } from 'msw'
 import type { CreateProjectPayload, Project } from '../types/project.ts'
 import { errorResponse, findUserByToken } from './authHandlers.ts'
 
-const sampleProjects: Project[] = [
+// Sample data. Every logged-in user sees the same list; that is enough to build the page
+let sampleProjects: Project[] = [
+
   { id: 'project_1', name: 'Robot', createdAt: '2026-10-01T10:00:00Z', updatedAt: '2026-10-20T15:30:00Z' },
   { id: 'project_2', name: 'My first castle', createdAt: '2026-10-05T09:00:00Z', updatedAt: '2026-10-12T18:00:00Z' },
   { id: 'project_3', name: 'Rocket ship', createdAt: '2026-10-08T14:00:00Z', updatedAt: '2026-10-25T08:45:00Z' },
@@ -60,6 +62,47 @@ export const projectHandlers = [
       .filter((project) => project.name.toLowerCase().includes(search))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 
-    return HttpResponse.json({ projects: matchingProjects })
+        return HttpResponse.json({ projects: matchingProjects })
+  }),
+
+  // DELETE /api/projects/:projectId
+  http.delete('*/api/projects/:projectId', async ({ request, params }) => {
+    // Simulate a short server delay
+    await delay(400)
+
+    // Check authentication
+    if (!findUserByToken(request)) {
+      return HttpResponse.json(
+        { error: { code: 'UNAUTHENTICATED', message: 'No valid session.' } },
+        { status: 401 },
+      )
+    }
+
+    const projectId = params.projectId
+
+    // Check whether the project exists
+    const projectExists = sampleProjects.some(
+      (project) => project.id === projectId
+    )
+
+    if (!projectExists) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'PROJECT_NOT_FOUND',
+            message: 'Project not found.',
+          },
+        },
+        { status: 404 },
+      )
+    }
+
+    // Remove the project from the mock data
+    sampleProjects = sampleProjects.filter(
+      (project) => project.id !== projectId
+    )
+
+    // Successful deletion, no response body
+    return new HttpResponse(null, { status: 204 })
   }),
 ]

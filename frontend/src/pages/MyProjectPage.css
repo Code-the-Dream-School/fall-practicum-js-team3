@@ -1,0 +1,21 @@
+.projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.create-project-button {
+  display: inline-block;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  background-color: var(--accent-blue);
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.create-project-button:hover {
+  opacity: 0.9;
+}
