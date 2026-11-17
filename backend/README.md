@@ -65,6 +65,18 @@ Request JSON: `{"name":"person", "email":"person@example.com", "password":"..."}
 
 The name is saved in the `username` column. Emails are stored in lowercase and passwords are hashed with bcrypt.
 
+### Protected routes
+
+Protected routes need `Authorization: Bearer <token>`, using the token from login (valid for 15 minutes).
+
+- Protected: `POST /api/auth/logout`, `GET /api/auth/user`, and everything under `/api/projects`.
+- Public: register, login, `/api/hello` and `/api/health`.
+- A missing, malformed, expired or invalid token returns `401` with the code `UNAUTHENTICATED`. Only HS256 tokens signed by this server are accepted.
+- The user id comes from the token's `sub` and is read from `res.locals.userId`, never from the request body.
+- `/api/projects` checks the token before reading the body, so a request without a valid token gets `401` even if its body is too large or not valid JSON.
+- A project that doesn't exist and one that belongs to someone else both return `404` with the code `NOT_FOUND`, so the API doesn't reveal which ids exist.
+
+
 ## Project data (MongoDB)
 
 Projects are stored in MongoDB with Mongoose. User accounts stay in PostgreSQL, so a
