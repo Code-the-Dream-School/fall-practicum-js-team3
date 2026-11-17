@@ -85,6 +85,11 @@ test('rejects an unsigned token (alg none)', () => {
     assertUnauthenticated(run(`Bearer ${token}`));
 });
 
+test('rejects a token signed with another algorithm (HS512)', () => {
+  const token = jwt.sign({}, SECRET, { subject: 'user-1', algorithm: 'HS512' });
+  assertUnauthenticated(run(`Bearer ${token}`));//
+});
+
 test('passes a server error on when JWT_SECRET is not configured', () => {
     delete process.env.JWT_SECRET;
     try {
