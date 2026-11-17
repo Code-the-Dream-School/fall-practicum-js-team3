@@ -6,10 +6,9 @@
   "scripts": {
     "dev": "tsx watch server.js",
     "build": "tsc",
-    "test": "node --import tsx --test src/routes/projectRoutes.test.ts",
+    "test": "node --import tsx --test src/routes/projectRoutes.test.ts src/middleware/requireAuth.test.ts",
     "db:setup": "tsx src/db/runMigrations.ts",
-    "start": "node dist/server.js",
-    "test": "tsx --test src/middleware/requireAuth.test.ts"
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
