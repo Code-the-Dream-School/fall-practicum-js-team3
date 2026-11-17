@@ -276,7 +276,7 @@ A project represents a saved 3D model and contains its shapes. A project is owne
 |---|---|---|---|
 | POST | `/api/projects` | Create a project | Required |
 | GET | `/api/projects` | List projects, optionally filtered by name | Required |
-| GET | `/api/projects/:projectId` | Retrieve a project and its shapes | Required |
+| GET | `/api/projects/:id` | Retrieve a project and its saved design | Required |
 | PATCH | `/api/projects/:projectId` | Update project details | Required |
 | DELETE | `/api/projects/:projectId` | Delete a project | Required |
 
@@ -380,54 +380,62 @@ The example response is illustrative. The actual response structure and search b
 
 ### 3.3 Retrieve a Project
 
-**Endpoint:** `GET /api/projects/:projectId`
+**Endpoint:** `GET /api/projects/:id`
 
-**Purpose:** Load a saved project and its associated shapes.
+**Purpose:** Load one saved project, including its complete design, into the editor.
 
-**Authentication:** Required.
+**Authentication:** Required. The owner is taken from the verified JWT subject; clients
+cannot choose or override the owner.
 
 **Path parameters:**
 
-- `projectId` — ID of the project to retrieve.
+- `id` — MongoDB ObjectId encoded as a 24-character hexadecimal string.
 
 **Example request:**
 
 ```http
-GET /api/projects/project_123
+GET /api/projects/665f1a2b3c4d5e6f78901234
+Authorization: Bearer <token>
 ```
 
 **Example successful response — `200 OK`:**
 
 ```json
 {
-  "id": "project_123",
+  "id": "665f1a2b3c4d5e6f78901234",
   "name": "First Model",
-  "shapes": [
-    {
-      "id": "shape_456",
-      "name": "Custom Sphere",
-      "geometry": {
+  "createdAt": "2026-11-11T12:00:00.000Z",
+  "updatedAt": "2026-11-12T12:00:00.000Z",
+  "design": {
+    "version": 1,
+    "blocks": [
+      {
+        "id": 1,
         "type": "sphere",
-        "radius": 1,
-        "segments": 16,
-        "rings": 8
-      },
-      "color": "#FF0000",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
-      "scale": [1, 1, 1]
-    }
-  ]
+        "color": "#FF0000",
+        "position": { "x": 0, "y": 0, "z": 0 },
+        "rotation": { "x": 0, "y": 0, "z": 0 },
+        "scale": 1
+      }
+    ]
+  }
 }
 ```
 
+The response includes the project metadata and saved `design` in the same versioned
+format accepted by the project design validator. The owner field is never returned.
+
 **Possible errors:**
 
-- `401 Unauthorized` — authentication is missing or invalid.
-- `404 Not Found` — the project does not exist or is not accessible to the user.
-- `500 Internal Server Error` — unexpected server error.
+| Status | Code | Reason |
+| :---: | :--- | :--- |
+| 400 | `VALIDATION_ERROR` | `id` is not a valid MongoDB ObjectId |
+| 401 | `UNAUTHENTICATED` | Authentication is missing or invalid |
+| 404 | `PROJECT_NOT_FOUND` | The project does not exist or belongs to another user |
+| 500 | `INTERNAL_ERROR` | Unexpected server error |
 
-This example assumes the project endpoint returns its shapes in the same response. 
+Missing projects and projects owned by other users return the same `404` response so
+the endpoint does not disclose whether another user's project exists.
 
 ### 3.4 Update a Project
 
