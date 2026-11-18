@@ -1,9 +1,9 @@
 /*
-  Mock project API (development only): create projects and list/search them.
+  Mock project API (development only): create projects, list/search them, and open one project with its design.
   Projects live in memory and disappear when the page reloads.
 */
 import { delay, http, HttpResponse } from 'msw'
-import type { CreateProjectPayload, Project } from '../types/project.ts'
+import type { CreateProjectPayload, DesignJson, Project } from '../types/project.ts'
 import { errorResponse, findUserByToken } from './authHandlers.ts'
 
 // Sample data. Every logged-in user sees the same list; that is enough to build the page
@@ -24,6 +24,24 @@ let sampleProjects: Project[] = [
 ]
 
 const projects: Project[] = [...sampleProjects]
+
+// Designs saved by the mock POST, kept by project id
+const designs = new Map<string, DesignJson>()
+
+// Design shown for the sample projects: one shape of every type, plus two recolored extras
+const sampleDesign: DesignJson = {
+  version: 1,
+  blocks: [
+    { id: 1, type: 'cube', color: '#0ea5e9', position: { x: -4, y: 0, z: 0 }, scale: 1, rotation: { x: 0, y: 0, z: 0 } },
+    { id: 2, type: 'sphere', color: '#ef4444', position: { x: -2.4, y: 0, z: 0 }, scale: 1.2, rotation: { x: 0, y: 0, z: 0 } },
+    { id: 3, type: 'cylinder', color: '#10b981', position: { x: -0.8, y: 0, z: 0 }, scale: 1, rotation: { x: 0, y: 0.5, z: 0 } },
+    { id: 4, type: 'cone', color: '#eab308', position: { x: 0.8, y: 0, z: 0 }, scale: 1.2, rotation: { x: 0, y: 0, z: 0 } },
+    { id: 5, type: 'pyramid', color: '#a855f7', position: { x: 2.4, y: 0, z: 0 }, scale: 0.8, rotation: { x: 0, y: 0.8, z: 0 } },
+    { id: 6, type: 'torus', color: '#f97316', position: { x: 4, y: 0, z: 0 }, scale: 1, rotation: { x: 1, y: 0, z: 0 } },
+    { id: 7, type: 'cube', color: '#ef4444', position: { x: -2.4, y: 0, z: -2 }, scale: 0.7, rotation: { x: 0, y: 0.4, z: 0 } },
+    { id: 8, type: 'sphere', color: '#0ea5e9', position: { x: 0.8, y: 0, z: -2 }, scale: 0.8, rotation: { x: 0, y: 0, z: 0 } },
+  ],
+}
 
 export const projectHandlers = [
   // POST /api/projects: creates a project for the logged-in user
@@ -47,6 +65,7 @@ export const projectHandlers = [
     const now = new Date().toISOString()
     const project: Project = { id: `project_${projects.length + 1}`, name, createdAt: now, updatedAt: now }
     projects.push(project)
+    if (body.design) designs.set(project.id, body.design)
     return HttpResponse.json(project, { status: 201 })
   }),
 
@@ -65,6 +84,20 @@ export const projectHandlers = [
         return HttpResponse.json({ projects: matchingProjects })
   }),
 
+  // GET /api/projects/:projectId: one project with its design
+  http.get('*/api/projects/:projectId', async ({ request, params }) => {
+    await delay(600)
+    if (!findUserByToken(request)) {
+      return errorResponse(401, 'UNAUTHENTICATED', 'No valid session.')
+    }
+
+    const project = projects.find((item) => item.id === params.projectId)
+    if (!project) {
+      return errorResponse(404, 'PROJECT_NOT_FOUND', 'Project not found.')
+    }
+    return HttpResponse.json({ ...project, design: designs.get(project.id) ?? sampleDesign })
+  }),
+  
   // DELETE /api/projects/:projectId
   http.delete('*/api/projects/:projectId', async ({ request, params }) => {
     // Simulate a short server delay

@@ -9,6 +9,7 @@
   - isDirty: true when the design changed since it was last saved
 
   toJSON() returns the design in the form that is sent to the server.
+  fromJSON(design) replaces the scene with a design loaded from the server.
 */
 import { create } from 'zustand'
 import type { Block, BlockType, DesignJson, Project } from '../types/project'
@@ -68,6 +69,7 @@ interface DesignState {
   removeBlock: (id: number) => void
   reset: () => void
   toJSON: () => DesignJson
+  fromJSON: (design: DesignJson) => void
   markSaved: (project: Pick<Project, 'id' | 'name'>) => void
 }
 
@@ -151,6 +153,18 @@ export const useDesignStore = create<DesignState>((set, get) => ({
 
   toJSON() {
     return { version: 1, blocks: get().blocks }
+  },
+
+    fromJSON(design) {
+    // The data comes from the server, so check its shape before using it
+    if (!design || design.version !== 1 || !Array.isArray(design.blocks)) {
+      throw new Error('Unsupported design format.')
+    }
+    set({
+      blocks: design.blocks.map((block) => ({ ...block })),
+      selectedBlockId: null,
+      isDirty: false,
+    })
   },
 
   markSaved(project) {
