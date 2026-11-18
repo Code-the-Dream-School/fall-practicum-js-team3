@@ -11,6 +11,11 @@ export interface ProjectListResponse {
   projects: Project[];
 }
 
+// One project with its saved shapes, as returned by GET /api/projects/:id.
+export interface ProjectWithDesign extends Project {
+  design: DesignJson;
+}
+
 // The shapes the user built, as produced by the design store's toJSON()
 export type BlockType = 'cube' | 'sphere' | 'cylinder' | 'cone' | 'pyramid' | 'torus';
 
