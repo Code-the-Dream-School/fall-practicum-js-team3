@@ -14,7 +14,7 @@ import { useAuthStore } from './hooks/useAuthStore.ts';
 import LoginPage from './pages/LoginPage.tsx';
 import RegisterPage from './pages/RegisterPage.tsx';
 import MyProjectsPage from './pages/MyProjectsPage.tsx';
-import EditorPlaceholderPage from './pages/EditorPlaceholderPage.tsx';
+import EditorPage from './pages/EditorPage.tsx';
 import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
 
 export default function AppRoutes() {
@@ -52,7 +52,7 @@ export default function AppRoutes() {
           path='/editor/:id'
           element={
             <ProtectedRoute>
-              <EditorPlaceholderPage />
+              <EditorPage />
             </ProtectedRoute>
           }
         />
