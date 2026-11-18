@@ -1,5 +1,5 @@
 import { apiRequest } from './apiClient';
-import type { CreateProjectPayload, Project, ProjectListResponse } from '../types/project';
+import type { CreateProjectPayload, Project, ProjectListResponse, ProjectWithDesign } from '../types/project';
 
 /** Creates a project (POST /projects). Returns the new project with its id. */
 export const createProject = (payload: CreateProjectPayload, token: string) =>
@@ -24,3 +24,6 @@ export const deleteProject = (token: string, projectId: string) => {
   );
 };
 
+// Gets one project with its design (GET /projects/:id), to open it in the editor.
+export const fetchProject = (token: string, projectId: string, signal?: AbortSignal) =>
+  apiRequest<ProjectWithDesign>(`/projects/${encodeURIComponent(projectId)}`, { token, signal });
