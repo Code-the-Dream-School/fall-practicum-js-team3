@@ -74,7 +74,7 @@ Protected routes need `Authorization: Bearer <token>`, using the token from logi
 - A missing, malformed, expired or invalid token returns `401` with the code `UNAUTHENTICATED`. Only HS256 tokens signed by this server are accepted.
 - The user id comes from the token's `sub` and is read from `res.locals.userId`, never from the request body.
 - `/api/projects` checks the token before reading the body, so a request without a valid token gets `401` even if its body is too large or not valid JSON.
-- A project that doesn't exist and one that belongs to someone else both return `404` with the code `NOT_FOUND`, so the API doesn't reveal which ids exist.
+- - A project that doesn't exist and one that belongs to someone else both return `404`, so the API doesn't reveal which ids exist.
 
 
 ## Project data (MongoDB)
