@@ -140,6 +140,29 @@ Errors use `{ "error": { "code", "message" } }`: `400 VALIDATION_ERROR` for
 an invalid body, name, or design; `401 UNAUTHENTICATED` for a missing or invalid
 token; and `413 PAYLOAD_TOO_LARGE` when the request exceeds the body limit.
 
+### `GET /api/projects/:id`
+
+Returns one project and its saved design. Send a valid bearer token; the project owner
+is always taken from that token. The `id` path parameter must be a 24-character
+hexadecimal MongoDB ObjectId.
+
+On success, returns `200` with the project metadata and the full versioned design:
+
+```json
+{
+  "id": "665f1a2b3c4d5e6f78901234",
+  "name": "My first design",
+  "createdAt": "2026-11-11T12:00:00.000Z",
+  "updatedAt": "2026-11-12T12:00:00.000Z",
+  "design": { "version": 1, "blocks": [] }
+}
+```
+
+Malformed IDs return `400 VALIDATION_ERROR`. A missing project and a project owned by
+another user both return `404 PROJECT_NOT_FOUND`; the lookup filters by both project
+ID and authenticated owner to avoid revealing another user's project. Missing or
+invalid tokens return `401 UNAUTHENTICATED`.
+
 This document outlines **backend API, security, and architecture best practices** for a Node.js + Express application.
 It is written for students building their first **real-world backend** and should be used as a reference while developing features.
 
