@@ -1,12 +1,15 @@
 import type { NextFunction, Request, Response } from 'express';
 import {
   createProject as saveProject,
+  deleteProject,
   getProject as findProject,
   type ProjectSummary,
   type ProjectView,
 } from '../repositories/projectRepository';
 import type { CreateProjectBody } from '../middleware/projectValidation';
+import { ApiError } from '../errors/ApiError';
 
+// CREATE PROJECT
 type CreateProject = (owner: unknown, input: CreateProjectBody) => Promise<ProjectSummary>;
 type GetProject = (owner: unknown, id: unknown) => Promise<ProjectView | null>;
 
@@ -20,6 +23,26 @@ export const makeCreateProjectHandler = (create: CreateProject = saveProject) =>
       next(error);
     }
   };
+
+// DELETE PROJECT
+export async function deleteProjectController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userId = res.locals.userId;
+    const projectId = req.params.projectId;
+    const deleted = await deleteProject(userId, projectId);
+    if (!deleted) {
+      throw new ApiError(404, 'PROJECT_NOT_FOUND', 'Project not found.');
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
 
 export const makeGetProjectHandler = (get: GetProject = findProject) =>
   async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> => {
