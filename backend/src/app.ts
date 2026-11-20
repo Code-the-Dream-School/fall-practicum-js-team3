@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { ApiError } from './errors/ApiError';
 import authRoutes from './routes/authRoutes';
 import projectRoutes from './routes/projectRoutes';
+import { requireAuth } from './middleware/requireAuth';
 
 const app: Application = express();
 
@@ -20,7 +21,7 @@ app.use(cors({ origin: allowedOrigins }));
 
 // Project saves contain large designs, so they need a higher limit.
 // Keep this above the global parser limit.
-app.use('/api/projects', express.json({ limit: '1mb' }));
+app.use('/api/projects', requireAuth, express.json({ limit: '1mb' }));
 app.use(express.json({ limit: '10kb' }));
 
 app.use(morgan('dev'));
