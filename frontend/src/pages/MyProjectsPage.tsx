@@ -88,9 +88,6 @@ export default function MyProjectsPage() {
       // Close the confirmation dialog
       setProjectToDelete(null)
       setShowDeleteSuccess(true)
-      requestAnimationFrame(() => {
-        headingRef.current?.focus()
-      })
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setIsSessionExpired(true)
