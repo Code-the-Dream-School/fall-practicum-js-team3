@@ -3,10 +3,13 @@ import './Topbar.css';
 interface TopbarProps {
   onSave: () => void;
   canSave: boolean;
+  onLoad: () => void;
+  canLoad: boolean;
   saveStatus: string;
+  projectName: string;
 }
 
-function Topbar({ onSave, canSave, saveStatus }: TopbarProps) {
+function Topbar({ onSave, canSave, onLoad, canLoad, saveStatus, projectName }: TopbarProps) {
 
   return (
     <header className="cad-header">
@@ -19,7 +22,7 @@ function Topbar({ onSave, canSave, saveStatus }: TopbarProps) {
         <div className="header-vertical-divider"></div>
 
         <div className="project-meta">
-          <h1 className="project-title">My awesome robot</h1>
+          <h1 className="project-title">{projectName}</h1>
         </div>
       </div>
 
@@ -35,7 +38,16 @@ function Topbar({ onSave, canSave, saveStatus }: TopbarProps) {
                 Save
               </button>
             )}
-            <button className="action-btn" type="button">Load</button>
+            {canLoad && (
+              <button
+                className="action-btn"
+                type="button"
+                aria-label="Load project"
+                onClick={onLoad}
+              >
+                Load
+              </button>
+            )}
           </div>
           <p
             className={`save-status${saveStatus ? ' is-visible' : ''}${saveStatus === 'Unsaved changes.' ? ' is-unsaved' : ''}`}
