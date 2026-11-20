@@ -54,7 +54,7 @@ async function fakeProjectsAnswer(page: Page, status: number, body: unknown) {
 
     window.fetch = (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
-      if (url.includes('/projects')) {
+      if (url.includes('/api/projects')) {
         return Promise.resolve(
           new Response(JSON.stringify(body), {
             status,

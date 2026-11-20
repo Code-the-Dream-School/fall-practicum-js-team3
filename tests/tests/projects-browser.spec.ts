@@ -63,7 +63,7 @@ async function fakeProjectsAnswer(page: Page, status: number, body: unknown) {
 
     window.fetch = (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
-      if (url.includes('/projects')) {
+      if (url.includes('/api/projects')) {
         return Promise.resolve(
           new Response(JSON.stringify(body), {
             status,
@@ -93,7 +93,7 @@ async function startCountingProjectsRequests(page: Page) {
 
     window.fetch = (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
-      if (url.includes('/projects')) w.__projectsRequests = (w.__projectsRequests ?? 0) + 1;
+      if (url.includes('/api/projects')) w.__projectsRequests = (w.__projectsRequests ?? 0) + 1;
       return realFetch(input, init);
     };
   });
