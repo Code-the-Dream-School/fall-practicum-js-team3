@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
-import { validateCreateProjectBody } from '../middleware/projectValidation';
-import { makeCreateProjectHandler, deleteProjectController } from '../controllers/projectController';
+import { validateCreateProjectBody, validateProjectId } from '../middleware/projectValidation';
+import { makeCreateProjectHandler, makeGetProjectHandler, deleteProjectController } from '../controllers/projectController';
 import type { ProjectSummary } from '../repositories/projectRepository';
 import type { CreateProjectBody } from '../middleware/projectValidation';
 
@@ -12,11 +12,15 @@ export const makeProjectRouter = (create?: CreateProject) => {
 
 //POST
   router.post('/', requireAuth, validateCreateProjectBody, makeCreateProjectHandler(create));
+  
+// GET
+  router.get('/:id', requireAuth, validateProjectId, makeGetProjectHandler());
 
 // DELETE
   router.delete('/:projectId', requireAuth, deleteProjectController);
-
-    return router;
+  
+  return router;
 };
+
 export default makeProjectRouter();
 
