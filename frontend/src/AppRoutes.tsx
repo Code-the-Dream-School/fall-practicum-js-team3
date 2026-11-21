@@ -7,10 +7,11 @@
   so a user who reloads the page stays logged in.
 */
 import { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useBlocker } from 'react-router-dom';
 import App from './App.tsx';
 import Header from './components/Header.tsx';
 import { useAuthStore } from './hooks/useAuthStore.ts';
+import { useDesignStore } from './hooks/useDesignStore.ts';
 import LoginPage from './pages/LoginPage.tsx';
 import RegisterPage from './pages/RegisterPage.tsx';
 import MyProjectsPage from './pages/MyProjectsPage.tsx';
@@ -19,6 +20,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
 
 export default function AppRoutes() {
   const loadUser = useAuthStore((state) => state.loadUser);
+  const isDirty = useDesignStore((state) => state.isDirty);
+  const blocker = useBlocker(isDirty);
 
   // Runs once at startup. If the page closes first, the request is cancelled
   useEffect(() => {
@@ -26,6 +29,27 @@ export default function AppRoutes() {
     loadUser(controller.signal);
     return () => controller.abort();
   }, [loadUser]);
+
+  // Protect in-app navigation, including links and browser Back/Forward.
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    if (window.confirm('You have unsaved changes. Leave this page and lose them?')) {
+      blocker.proceed();
+    } else {
+      blocker.reset();
+    }
+  }, [blocker]);
+
+  // Protect refresh, tab close, and navigation to another site.
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [isDirty]);
   return (
     <>
       <Header />
