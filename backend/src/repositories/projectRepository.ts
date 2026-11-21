@@ -185,3 +185,19 @@ export async function updateProject(
     ).lean();
     return record ? toProject(record) : null;
 }
+
+
+// Delete a project belonging to the authenticated user
+export async function deleteProject(
+  owner: unknown,
+  id: unknown,
+): Promise<boolean> {
+  assertOwner(owner)
+
+  if (!mongoose.isObjectIdOrHexString(id)) return false
+
+  const result = await Project.deleteOne({ _id: id, owner })  
+
+  return result.deletedCount === 1
+}
+
