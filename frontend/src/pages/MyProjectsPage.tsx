@@ -88,6 +88,7 @@ export default function MyProjectsPage() {
       // Close the confirmation dialog
       setProjectToDelete(null)
       setShowDeleteSuccess(true)
+      
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setIsSessionExpired(true)
