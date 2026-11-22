@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import {
   createProject as saveProject,
   deleteProject,
+  listProjects,
   getProject as findProject,
   type ProjectSummary,
   type ProjectView,
@@ -39,6 +40,30 @@ export async function deleteProjectController(
     }
 
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET PROJECTS 
+export async function getProjectsController(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userId: unknown = res.locals.userId;
+    const search = req.query.search;
+
+    if (search !== undefined && typeof search !== 'string') {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'Search must be a string.');
+    }
+
+    const result = await listProjects(userId, {
+      search: search?.trim() ?? '',
+    });
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
