@@ -76,6 +76,7 @@ All errors use the same JSON structure:
 | `INVALID_CREDENTIALS` | 401 | Email or password is incorrect |
 | `FORBIDDEN` | 403 | Request refused, for example a missing CSRF header |
 | `NOT_FOUND` | 404 | Resource not found or not visible to the user |
+| `PROJECT_NOT_FOUND` | 404 | The project does not exist or belongs to another user |
 | `EMAIL_ALREADY_REGISTERED` | 409 | Email is already in use |
 | `USERNAME_ALREADY_TAKEN` | 409 | Name is already in use |
 | `SHAPE_LIMIT_REACHED` | 409 | The project already holds the maximum number of shapes (500) |
@@ -277,7 +278,7 @@ A project represents a saved 3D model and contains its shapes. A project is owne
 | POST | `/api/projects` | Create a project | Required |
 | GET | `/api/projects` | List projects, optionally filtered by name | Required |
 | GET | `/api/projects/:id` | Retrieve a project and its saved design | Required |
-| PATCH | `/api/projects/:projectId` | Update project details | Required |
+| PUT | `/api/projects/:id` | Update a project's name and design | Required |
 | DELETE | `/api/projects/:projectId` | Delete a project | Required |
 
 These endpoints are proposed and must be verified against the backend.
@@ -439,42 +440,55 @@ the endpoint does not disclose whether another user's project exists.
 
 ### 3.4 Update a Project
 
-**Endpoint:** `PATCH /api/projects/:projectId`
+**Endpoint:** `PUT /api/projects/:id`
 
-**Purpose:** Update project information, such as its name.
+**Purpose:** Save the current name and design of an existing project. The saved design is replaced as a whole. If two browser tabs save the same project, the last write wins.
 
-**Authentication:** Required.
+**Authentication:** Required (`Authorization: Bearer <token>`). The owner is taken from the verified token; clients cannot choose or override it, and any other field in the body is ignored.
 
 **Path parameters:**
 
-- `projectId` — ID of the project to update.
+- `id` — MongoDB ObjectId encoded as a 24-character hexadecimal string.
 
 **Request body:**
 
 ```json
 {
-  "name": "Updated Model"
+  "name": "Updated Model",
+  "design": { "version": 1, "blocks": [] }
 }
 ```
 
-Only the supplied fields are updated.
+- `name` — 1–100 characters after trimming.
+- `design` — validated with the same rules as in section 3.1 (`version` must be 1, at most 500 blocks).
 
-**Example successful response — `200 OK`:**
+**Example successful response — `200 OK`:** the full project, in the same shape as section 3.3, with a new `updatedAt`.
 
 ```json
 {
-  "id": "project_123",
+  "id": "665f1a2b3c4d5e6f78901234",
   "name": "Updated Model",
-  "updatedAt": "2026-10-12T18:30:00Z"
+  "createdAt": "2026-11-11T12:00:00.000Z",
+  "updatedAt": "2026-11-13T12:00:00.000Z",
+  "design": { "version": 1, "blocks": [] }
 }
-```
 
+```
 **Possible errors:**
 
-- `400 Bad Request` — invalid project data.
-- `401 Unauthorized` — authentication is missing or invalid.
-- `404 Not Found` — the project does not exist or is not accessible to the user.
-- `500 Internal Server Error` — unexpected server error.
+| Status | Code | Reason |
+| :---: | :--- | :--- |
+| 400 | `INVALID_REQUEST` | Body is not valid JSON |
+| 400 | `VALIDATION_ERROR` | `id` is not a valid ObjectId, or `name` or `design` is missing or invalid (the message names the field) |
+| 401 | `UNAUTHENTICATED` | Authentication is missing or invalid |
+| 404 | `PROJECT_NOT_FOUND` | The project does not exist or belongs to another user |
+| 409 | `SHAPE_LIMIT_REACHED` | The design has more than 500 blocks |
+| 413 | `PAYLOAD_TOO_LARGE` | Request body exceeds 1 MB |
+| 429 | `RATE_LIMITED` | Too many requests |
+| 500 | `INTERNAL_ERROR` | Unexpected server error |
+
+Missing projects and projects owned by other users return the same `404`, so the endpoint does not reveal whether another user's project exists.
+
 
 ### 3.5 Delete a Project
 
