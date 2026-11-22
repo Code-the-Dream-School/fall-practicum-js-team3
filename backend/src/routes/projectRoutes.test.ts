@@ -442,3 +442,24 @@ test('PUT rejects a body over 1 MB with 413 in the standard error format', async
     server.closeAllConnections();
   }
 });
+
+test('PUT rejects more than 500 blocks with 409 SHAPE_LIMIT_REACHED', async () => {
+  const blocks = Array.from({ length: 501 }, (_, i) => ({
+    id: i + 1,
+    type: 'cube',
+    color: '#FF0000',
+    position: { x: 0, y: 0, z: 0 },
+    scale: 1,
+  }));
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: 'Renamed', design: { version: 1, blocks } },
+  });
+
+  assert.equal(result.status, 409);
+  assert.equal(result.getCalled, false);
+  assert.deepEqual(result.body, {
+    error: { code: 'SHAPE_LIMIT_REACHED', message: 'A project holds at most 500 blocks.' },
+  });
+});
