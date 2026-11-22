@@ -10,6 +10,7 @@ import {
   type CreateProjectBody,
 } from '../middleware/projectValidation';
 import type { ProjectView } from '../repositories/projectRepository';
+import app from '../app';
 
 const secret = 'project-route-test-secret-with-more-than-32-characters';
 const originalSecret = process.env.JWT_SECRET;
@@ -415,4 +416,29 @@ test('PUT rejects a request without a token', async () => {
   assert.deepEqual(result.body, {
     error: { code: 'UNAUTHENTICATED', message: 'Authentication is required.' },
   });
+});
+
+// Too large (413): the body parser in app.ts rejects the request before any route runs,
+// so this test starts the real app on a free port and sends a body over 1 MB.
+test('PUT rejects a body over 1 MB with 413 in the standard error format', async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as { port: number };
+    const response = await fetch(`http://127.0.0.1:${port}/api/projects/${projectId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenFor()}`,
+      },
+      body: JSON.stringify({ name: 'Big', design, padding: 'x'.repeat(1024 * 1024 + 10) }),
+    });
+
+    assert.equal(response.status, 413);
+    assert.deepEqual(await response.json(), {
+      error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large.' },
+    });
+  } finally {
+    server.close();
+    server.closeAllConnections();
+  }
 });
