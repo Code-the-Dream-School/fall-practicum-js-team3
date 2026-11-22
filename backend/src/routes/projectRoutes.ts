@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { validateCreateProjectBody, validateProjectId } from '../middleware/projectValidation';
-import { makeCreateProjectHandler, makeGetProjectHandler, deleteProjectController, getProjectsController, } from '../controllers/projectController';
+import { makeCreateProjectHandler, makeGetProjectHandler, makeUpdateProjectHandler, deleteProjectController, getProjectsController, } from '../controllers/projectController';
 import type { ProjectSummary } from '../repositories/projectRepository';
 import type { CreateProjectBody } from '../middleware/projectValidation';
 
@@ -16,6 +16,9 @@ export const makeProjectRouter = (create?: CreateProject) => {
 
 //POST
   router.post('/', requireAuth, validateCreateProjectBody, makeCreateProjectHandler(create));
+
+// PUT
+  router.put('/:id', requireAuth, validateProjectId, validateCreateProjectBody, makeUpdateProjectHandler());
 
 // DELETE
   router.delete('/:projectId', requireAuth, deleteProjectController);

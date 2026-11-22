@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 import jwt from 'jsonwebtoken';
 import type { NextFunction, Request, Response } from 'express';
-import { makeCreateProjectHandler, makeGetProjectHandler } from '../controllers/projectController';
+import { makeCreateProjectHandler, makeGetProjectHandler, makeUpdateProjectHandler } from '../controllers/projectController';
 import { requireAuth } from '../middleware/requireAuth';
 import {
   validateCreateProjectBody,
@@ -236,6 +236,179 @@ test('rejects a malformed project id with 400 before querying the repository', a
 
 test('rejects a request without a token', async () => {
   const result = await requestGetProject({ id: projectId });
+
+  assert.equal(result.status, 401);
+  assert.equal(result.getCalled, false);
+  assert.deepEqual(result.body, {
+    error: { code: 'UNAUTHENTICATED', message: 'Authentication is required.' },
+  });
+});
+
+// ---- PUT /api/projects/:id ----
+async function requestUpdateProject(options: {
+  authorization?: string;
+  id: string;
+  body: unknown;
+  storedOwner?: string;
+  exists?: boolean;
+}): Promise<RouteResult> {
+  const req = {
+    header: (name: string) => name.toLowerCase() === 'authorization' ? options.authorization : undefined,
+    params: { id: options.id },
+    body: options.body,
+  } as unknown as Request<{ id: string }, {}, CreateProjectBody>;
+  const result: RouteResult = { status: 200, body: undefined, getCalled: false };
+  const res = {
+    locals: {} as Record<string, unknown>,
+    status(code: number) {
+      result.status = code;
+      return this;
+    },
+    json(body: unknown) {
+      result.body = JSON.parse(JSON.stringify(body)) as unknown;
+      return this;
+    },
+  } as unknown as Response;
+
+  let authenticated = false;
+  requireAuth(req, res, (() => { authenticated = true; }) as NextFunction);
+  if (!authenticated) return result;
+
+  let validId = false;
+  validateProjectId(req, res, (() => { validId = true; }) as NextFunction);
+  if (!validId) return result;
+
+  let validBody = false;
+  validateCreateProjectBody(req, res, (() => { validBody = true; }) as NextFunction);
+  if (!validBody) return result;
+
+  const handler = makeUpdateProjectHandler(async (owner, id, changes) => {
+    result.getCalled = true;
+    result.owner = owner;
+    result.projectId = id;
+    result.input = changes;
+    if (owner !== (options.storedOwner ?? 'user-from-token') || options.exists === false) {
+      return null;
+    }
+    return {
+      ...projectView,
+      name: changes.name,
+      design: changes.design,
+      updatedAt: new Date('2026-11-13T12:00:00.000Z'),
+    };
+  });
+  await handler(req, res, (() => undefined) as NextFunction);
+  return result;
+}
+
+test('PUT updates the project, trims the name and takes the owner from the JWT', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: '  Renamed  ', design, owner: 'attacker' },
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.owner, 'user-from-token');
+  assert.equal(result.projectId, projectId);
+  assert.deepEqual(result.input, { name: 'Renamed', design });
+  assert.deepEqual(result.body, {
+    id: projectId,
+    name: 'Renamed',
+    createdAt: '2026-11-11T12:00:00.000Z',
+    updatedAt: '2026-11-13T12:00:00.000Z',
+    design,
+  });
+});
+
+test('PUT returns 404 when another user owns the project', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor('different-user')}`,
+    id: projectId,
+    body: { name: 'Renamed', design },
+  });
+
+  assert.equal(result.status, 404);
+  assert.deepEqual(result.body, {
+    error: { code: 'PROJECT_NOT_FOUND', message: 'Project not found.' },
+  });
+});
+
+test('PUT returns 404 when the project does not exist', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: 'Renamed', design },
+    exists: false,
+  });
+
+  assert.equal(result.status, 404);
+  assert.deepEqual(result.body, {
+    error: { code: 'PROJECT_NOT_FOUND', message: 'Project not found.' },
+  });
+});
+
+test('PUT rejects an invalid design before reaching the database', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: 'Renamed', design: { version: 99, blocks: [] } },
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(result.getCalled, false);
+  assert.deepEqual(result.body, {
+    error: { code: 'VALIDATION_ERROR', message: 'design.version must be 1.' },
+  });
+});
+
+test('PUT rejects a missing design', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: 'Renamed' },
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(result.getCalled, false);
+  assert.deepEqual(result.body, {
+    error: { code: 'VALIDATION_ERROR', message: 'design must be an object.' },
+  });
+});
+
+test('PUT rejects a name with only spaces', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: '   ', design },
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(result.getCalled, false);
+  assert.deepEqual(result.body, {
+    error: { code: 'VALIDATION_ERROR', message: 'name must be 1 to 100 characters.' },
+  });
+});
+
+test('PUT rejects a malformed project id before reaching the database', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: 'not-an-object-id',
+    body: { name: 'Renamed', design },
+  });
+
+  assert.equal(result.status, 400);
+  assert.equal(result.getCalled, false);
+  assert.deepEqual(result.body, {
+    error: { code: 'VALIDATION_ERROR', message: 'id must be a valid project id.' },
+  });
+});
+
+test('PUT rejects a request without a token', async () => {
+  const result = await requestUpdateProject({
+    id: projectId,
+    body: { name: 'Renamed', design },
+  });
 
   assert.equal(result.status, 401);
   assert.equal(result.getCalled, false);
