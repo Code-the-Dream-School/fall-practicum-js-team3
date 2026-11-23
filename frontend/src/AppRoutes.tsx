@@ -21,6 +21,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
 export default function AppRoutes() {
   const loadUser = useAuthStore((state) => state.loadUser);
   const isDirty = useDesignStore((state) => state.isDirty);
+  const discardDesign = useDesignStore((state) => state.reset);
   const blocker = useBlocker(isDirty);
 
   // Runs once at startup. If the page closes first, the request is cancelled
@@ -34,11 +35,12 @@ export default function AppRoutes() {
   useEffect(() => {
     if (blocker.state !== 'blocked') return;
     if (window.confirm('You have unsaved changes. Leave this page and lose them?')) {
+      discardDesign();
       blocker.proceed();
     } else {
       blocker.reset();
     }
-  }, [blocker]);
+  }, [blocker, discardDesign]);
 
   // Protect refresh, tab close, and navigation to another site.
   useEffect(() => {
