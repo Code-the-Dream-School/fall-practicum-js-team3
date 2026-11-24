@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { validateDesign, type Design } from '../validation/projectDesign';
 
 export interface CreateProjectBody {
@@ -36,5 +37,18 @@ export const validateCreateProjectBody = (
   // Keep only fields the create contract accepts. In particular, owner is never
   // copied from client input; the controller reads it from the verified JWT.
   req.body = { name: raw.name.trim(), design: raw.design as Design } satisfies CreateProjectBody;
+  next();
+};
+
+export const validateProjectId = (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction,
+): void => {
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) {
+    reject(res, 'id must be a valid project id.');
+    return;
+  }
+
   next();
 };
