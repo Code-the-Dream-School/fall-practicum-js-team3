@@ -26,48 +26,64 @@ export const makeCreateProjectHandler = (create: CreateProject = saveProject) =>
   };
 
 // DELETE PROJECT
-export async function deleteProjectController(
+type DeleteProject = (owner: unknown, id: unknown) => Promise<boolean>;
+
+export const makeDeleteProjectHandler = (
+  remove: DeleteProject = deleteProject,
+) =>
+  async (
   req: Request,
   res: Response,
   next: NextFunction,
-): Promise<void> {
-  try {
-    const userId = res.locals.userId;
-    const projectId = req.params.projectId;
-    const deleted = await deleteProject(userId, projectId);
-    if (!deleted) {
-      throw new ApiError(404, 'PROJECT_NOT_FOUND', 'Project not found.');
-    }
+): Promise<void> => {
+    try {
+      const userId = res.locals.userId;
+      const projectId = req.params.projectId;
+      const deleted = await remove(userId, projectId);
+      if (!deleted) {
+        throw new ApiError(404, 'PROJECT_NOT_FOUND', 'Project not found.');
+      }
 
-    res.status(204).send();
-  } catch (error) {
-    next(error);
-  }
-}
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+export const deleteProjectController = makeDeleteProjectHandler();
+
 
 // GET PROJECTS 
-export async function getProjectsController(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const userId: unknown = res.locals.userId;
-    const search = req.query.search;
+type ListProjects = typeof listProjects;
 
-    if (search !== undefined && typeof search !== 'string') {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Search must be a string.');
+export const makeGetProjectsHandler = (
+  list: ListProjects = listProjects,
+) =>
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const userId: unknown = res.locals.userId;
+      const search = req.query.search;
+
+      if (search !== undefined && typeof search !== 'string') {
+        throw new ApiError(400, 'VALIDATION_ERROR', 'Search must be a string.');
+      }
+
+      const result = await list(userId, {
+        search: search?.trim() ?? '',
+      });
+
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const result = await listProjects(userId, {
-      search: search?.trim() ?? '',
-    });
+export const getProjectsController = makeGetProjectsHandler();
 
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-}
 
 export const makeGetProjectHandler = (get: GetProject = findProject) =>
   async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> => {
