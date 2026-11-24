@@ -4,7 +4,8 @@
   What it does:
   1. Checks that both fields are filled in.
   2. Calls login() from the auth store, which sends the credentials to the backend.
-  3. On success, sends the user to the main page.
+  3. On success, returns the user to the page they originally requested,
+     or sends them to the main page if there is no saved destination.
   4. On failure, shows one message under the form. For a wrong login it never says
      whether the email or the password was wrong.
 */
@@ -43,12 +44,11 @@ export default function LoginForm({ from }: LoginFormProps) {
       await login({ email: email.trim(), password })
       //add redirect back to originally requested page
       const destination = from
-        ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
-        : "/"
+        ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
+        : '/'
 
       navigate(destination)
 
-navigate(destination)
     } catch (err) {
       let message = 'Something went wrong. Please try again.'
       if (err instanceof ApiError && err.status === 401) {
