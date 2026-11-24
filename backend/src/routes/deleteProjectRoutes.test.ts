@@ -144,7 +144,7 @@ test('returns 404 when the project does not exist', async () => {
   });
 });
 
-
+// TEST 5: Authenticated user ID
 test('uses the authenticated user ID when deleting a project', async () => {
   const result = await requestDelete({
     authorization: `Bearer ${tokenFor('user-456')}`,
@@ -155,8 +155,8 @@ test('uses the authenticated user ID when deleting a project', async () => {
   assert.equal(result.deletedId, projectId);
 });
 
-
-test('returns 404 when attempting to delete another users project', async () => {
+// TEST 6: Repository denies deletion
+test('returns 404 when the repository denies deletion', async () => {
   const result = await requestDelete({
     authorization: `Bearer ${tokenFor('user-456')}`,
     deleteResult: false,
