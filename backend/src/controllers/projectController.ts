@@ -52,29 +52,38 @@ export const makeDeleteProjectHandler = (
 
 export const deleteProjectController = makeDeleteProjectHandler();
 
+
 // GET PROJECTS 
-export async function getProjectsController(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const userId: unknown = res.locals.userId;
-    const search = req.query.search;
+type ListProjects = typeof listProjects;
 
-    if (search !== undefined && typeof search !== 'string') {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Search must be a string.');
+export const makeGetProjectsHandler = (
+  list: ListProjects = listProjects,
+) =>
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const userId: unknown = res.locals.userId;
+      const search = req.query.search;
+
+      if (search !== undefined && typeof search !== 'string') {
+        throw new ApiError(400, 'VALIDATION_ERROR', 'Search must be a string.');
+      }
+
+      const result = await list(userId, {
+        search: search?.trim() ?? '',
+      });
+
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const result = await listProjects(userId, {
-      search: search?.trim() ?? '',
-    });
+export const getProjectsController = makeGetProjectsHandler();
 
-    res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-}
 
 export const makeGetProjectHandler = (get: GetProject = findProject) =>
   async (req: Request<{ id: string }>, res: Response, next: NextFunction): Promise<void> => {
