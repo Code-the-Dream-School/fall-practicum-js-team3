@@ -22,7 +22,15 @@ export default function AppRoutes() {
   const loadUser = useAuthStore((state) => state.loadUser);
   const isDirty = useDesignStore((state) => state.isDirty);
   const discardDesign = useDesignStore((state) => state.reset);
-  const blocker = useBlocker(isDirty);
+  const blocker = useBlocker(({ nextLocation }) => {
+    const navigationState: unknown = nextLocation.state;
+    const acceptedUnsavedChanges =
+      typeof navigationState === 'object' &&
+      navigationState !== null &&
+      'acceptedUnsavedChanges' in navigationState &&
+      navigationState.acceptedUnsavedChanges === true;
+    return isDirty && !acceptedUnsavedChanges;
+  });
 
   // Runs once at startup. If the page closes first, the request is cancelled
   useEffect(() => {

@@ -33,7 +33,6 @@ export default function OpenProjectDialog({ onClose }: OpenProjectDialogProps) {
   const navigate = useNavigate()
   const token = useAuthStore((state) => state.token)
   const isDirty = useDesignStore((state) => state.isDirty)
-  const discardDesign = useDesignStore((state) => state.reset)
   const [attempt, setAttempt] = useState(0)
   const [result, setResult] = useState<LoadResult | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -60,10 +59,10 @@ export default function OpenProjectDialog({ onClose }: OpenProjectDialogProps) {
 
   function openSelected() {
     if (!selectedId) return
-    // Clicking Open project accepts the warning above, so discard before navigating.
-    if (isDirty) discardDesign()
     onClose()
-    navigate(`/editor/${encodeURIComponent(selectedId)}`)
+    navigate(`/editor/${encodeURIComponent(selectedId)}`, {
+      state: { acceptedUnsavedChanges: true },
+    })
   }
 
   let content: ReactNode

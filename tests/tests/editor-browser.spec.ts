@@ -87,3 +87,74 @@ test.describe('Editor after logout (browser, mock backend)', () => {
     await expect(page.getByText('Unsaved changes.')).toHaveCount(0);
   });
 });
+
+test.describe('Loading a project with unsaved changes (browser, mock backend)', () => {
+  async function openProjectFromMyProjects(page: Page, name: string) {
+    await page.getByRole('link', { name: 'My Projects' }).click();
+    await page.getByRole('link', { name, exact: true }).click();
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  }
+
+  test('loading another project does not show a second warning', async ({ page }) => {
+    await registerAndSignIn(page);
+    await openProjectFromMyProjects(page, 'x');
+    await page.getByRole('button', { name: 'Cube' }).click();
+    await expect(page.getByRole('status')).toHaveText('Unsaved changes.');
+
+    let confirmationCount = 0;
+    page.on('dialog', async (dialog) => {
+      confirmationCount += 1;
+      await dialog.dismiss();
+    });
+
+    await page.getByRole('button', { name: 'Load project' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: 'Rocket ship' }).click();
+    await dialog.getByRole('button', { name: 'Open project' }).click();
+
+    await expect(page).toHaveURL(/\/editor\/project_3$/);
+    await expect(page.getByRole('heading', { name: 'Rocket ship', exact: true })).toBeVisible();
+    await expect(page.getByRole('status')).toHaveText('Saved as "Rocket ship".');
+    expect(confirmationCount).toBe(0);
+  });
+
+  test('loading the same project restores its saved design and status', async ({ page }) => {
+    await registerAndSignIn(page);
+    await openProjectFromMyProjects(page, 'x');
+    await page.getByRole('button', { name: 'Cube' }).click();
+    await expect(page.getByRole('status')).toHaveText('Unsaved changes.');
+
+    let confirmationCount = 0;
+    page.on('dialog', async (dialog) => {
+      confirmationCount += 1;
+      await dialog.dismiss();
+    });
+
+    await page.getByRole('button', { name: 'Load project' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: /^x/ }).click();
+    await dialog.getByRole('button', { name: 'Open project' }).click();
+
+    await expect(page).toHaveURL(/\/editor\/project_11$/);
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'x', exact: true })).toBeVisible();
+    await expect(page.getByRole('status')).toHaveText('Saved as "x".');
+    expect(confirmationCount).toBe(0);
+  });
+
+  test('canceling the Load dialog keeps unsaved changes', async ({ page }) => {
+    await registerAndSignIn(page);
+    await openProjectFromMyProjects(page, 'x');
+    await page.getByRole('button', { name: 'Cube' }).click();
+    await expect(page.getByRole('status')).toHaveText('Unsaved changes.');
+
+    await page.getByRole('button', { name: 'Load project' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Unsaved changes in the editor will be lost.')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'x', exact: true })).toBeVisible();
+    await expect(page.getByRole('status')).toHaveText('Unsaved changes.');
+  });
+});

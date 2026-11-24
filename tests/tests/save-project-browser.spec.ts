@@ -84,4 +84,66 @@ test.describe('Saving projects (browser, MSW backend)', () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole('status')).toHaveText('Unsaved changes.');
   });
+
+  test('accepting the leave warning discards changes and navigates', async ({ page }) => {
+    await signIn(page);
+    await page.getByRole('button', { name: 'Cube' }).click();
+    page.once('dialog', async (dialog) => {
+      expect(dialog.message()).toContain('unsaved changes');
+      await dialog.accept();
+    });
+
+    await page.getByRole('link', { name: 'My Projects' }).click();
+    await expect(page).toHaveURL(/\/projects$/);
+    await expect(page.getByRole('heading', { name: 'My Projects' })).toBeVisible();
+
+    await page.getByRole('link', { name: 'BlockCAD' }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('status')).toHaveText('');
+  });
+
+  test('accepting the warning lets the user reopen the saved project without another prompt', async ({ page }) => {
+    await signIn(page);
+    await page.getByRole('button', { name: 'Cube' }).click();
+    await page.getByRole('button', { name: 'Save project' }).click();
+    await page.getByLabel('Project name').fill('Test1');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText('Saved as "Test1".');
+
+    await page.getByRole('button', { name: 'Cube' }).click();
+    await expect(page.getByRole('status')).toHaveText('Unsaved changes.');
+
+    let confirmationCount = 0;
+    page.on('dialog', async (dialog) => {
+      confirmationCount += 1;
+      await dialog.accept();
+    });
+
+    await page.getByRole('link', { name: 'My Projects' }).click();
+    await expect(page).toHaveURL(/\/projects$/);
+    await page.getByRole('link', { name: 'BlockCAD' }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole('status')).toHaveText('');
+
+    await page.getByRole('link', { name: 'My Projects' }).click();
+    await expect(page).toHaveURL(/\/projects$/);
+    let loadedDesignBlockCount: number | undefined;
+    page.on('response', async (response) => {
+      if (
+        new URL(response.url()).pathname !== '/api/projects/project_13' ||
+        response.request().method() !== 'GET'
+      ) {
+        return;
+      }
+      const project = await response.json() as { design?: { blocks?: unknown[] } };
+      loadedDesignBlockCount = project.design?.blocks?.length;
+    });
+    await page.getByRole('link', { name: 'Test1', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/editor\/project_13$/);
+    await expect(page.getByRole('heading', { name: 'Test1', exact: true })).toBeVisible();
+    await expect(page.getByRole('status')).toHaveText('Saved as "Test1".');
+    await expect.poll(() => loadedDesignBlockCount).toBe(1);
+    expect(confirmationCount).toBe(1);
+  });
 });
