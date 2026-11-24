@@ -20,7 +20,15 @@ interface LoginFormValues {
   password: string
 }
 
-export default function LoginForm() {
+interface LoginFormProps {
+  from?: {
+    pathname: string
+    search?: string
+    hash?: string
+  }
+}
+
+export default function LoginForm({ from }: LoginFormProps) {
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
   const {
@@ -33,7 +41,14 @@ export default function LoginForm() {
   async function submitLogin({ email, password }: LoginFormValues) {
     try {
       await login({ email: email.trim(), password })
-      navigate('/')
+      //add redirect back to originally requested page
+      const destination = from
+        ? `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`
+        : "/"
+
+      navigate(destination)
+
+navigate(destination)
     } catch (err) {
       let message = 'Something went wrong. Please try again.'
       if (err instanceof ApiError && err.status === 401) {

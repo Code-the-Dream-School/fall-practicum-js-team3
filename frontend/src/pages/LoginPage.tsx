@@ -9,6 +9,7 @@ import LoginForm from '../components/auth/LoginForm'
 
 export default function LoginPage() {
   const location = useLocation()
+  const from =  location.state?.from
   // RegisterForm sends { registered: true } when it moves the user here
   const justRegistered = Boolean(location.state?.registered)
 
@@ -16,7 +17,7 @@ export default function LoginPage() {
     <main className='auth-page'>
       <h1>Welcome back</h1>
       {justRegistered && <p role='status'>Account created. Please sign in.</p>}
-      <LoginForm />
+      <LoginForm from={from} />
       <p>
         New here? <Link to='/register'>Create account</Link>
       </p>
