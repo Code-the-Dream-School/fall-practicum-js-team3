@@ -5,6 +5,14 @@ import type { CreateProjectPayload, Project, ProjectListResponse, ProjectWithDes
 export const createProject = (payload: CreateProjectPayload, token: string) =>
   apiRequest<Project>('/projects', { method: 'POST', body: payload, token });
 
+/** Updates the opened project (PUT /projects/:id). */
+export const updateProject = (projectId: string, payload: CreateProjectPayload, token: string) =>
+  apiRequest<ProjectWithDesign>(`/projects/${encodeURIComponent(projectId)}`, {
+    method: 'PUT',
+    body: payload,
+    token,
+  });
+
 // Gets the logged-in user's projects (GET /projects), optionally filtered by name.
 export const fetchProjects = (token: string, search = '', signal?: AbortSignal) => {
   const trimmedSearch = search.trim();
