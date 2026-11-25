@@ -22,9 +22,11 @@ export default function AppRoutes() {
   const loadUser = useAuthStore((state) => state.loadUser);
   const isDirty = useDesignStore((state) => state.isDirty);
   const discardDesign = useDesignStore((state) => state.reset);
-  const blocker = useBlocker(({ nextLocation }) => {
+  const blocker = useBlocker(({ nextLocation, historyAction }) => {
     const navigationState: unknown = nextLocation.state;
+    // History entries retain state, but consent only applies to the original Load navigation.
     const acceptedUnsavedChanges =
+      historyAction === 'PUSH' &&
       typeof navigationState === 'object' &&
       navigationState !== null &&
       'acceptedUnsavedChanges' in navigationState &&
