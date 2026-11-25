@@ -1,8 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'   
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './index.css'
 import AppRoutes from './AppRoutes.tsx'            
+
+const router = createBrowserRouter([{ path: '*', element: <AppRoutes /> }])
 
 
 // In development, the fake backend starts first when VITE_USE_MOCKS is 'true'
@@ -23,9 +25,7 @@ async function main() {
   
   createRoot(rootElement).render(
     <StrictMode>
-      <BrowserRouter> 
-        <AppRoutes />              
-      </BrowserRouter> 
+      <RouterProvider router={router} />
     </StrictMode>,
   )
 }

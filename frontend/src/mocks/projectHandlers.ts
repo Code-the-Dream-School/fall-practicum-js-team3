@@ -97,6 +97,48 @@ export const projectHandlers = [
     }
     return HttpResponse.json({ ...project, design: designs.get(project.id) ?? sampleDesign })
   }),
+
+  // PUT /api/projects/:projectId: updates the opened project. Reserved IDs
+  // simulate failures so browser tests can exercise the save error messages.
+  http.put('*/api/projects/:projectId', async ({ request, params }) => {
+    await delay(100)
+    if (!findUserByToken(request)) {
+      return errorResponse(401, 'UNAUTHENTICATED', 'No valid session.')
+    }
+
+    const projectId = String(params.projectId)
+    let body: Partial<CreateProjectPayload>
+    try {
+      body = (await request.json()) as Partial<CreateProjectPayload>
+    } catch {
+      return errorResponse(400, 'INVALID_REQUEST', 'Body is missing or is not valid JSON.')
+    }
+
+    const simulatedErrors: Record<string, { status: number; code: string; message: string }> = {
+      SIMULATE_ERROR_400: { status: 400, code: 'VALIDATION_ERROR', message: 'Invalid project details.' },
+      SIMULATE_ERROR_401: { status: 401, code: 'UNAUTHENTICATED', message: 'No valid session.' },
+      SIMULATE_ERROR_404: { status: 404, code: 'PROJECT_NOT_FOUND', message: 'Project not found.' },
+      SIMULATE_ERROR_413: { status: 413, code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large.' },
+      SIMULATE_ERROR_500: { status: 500, code: 'INTERNAL_ERROR', message: 'Server error.' },
+    }
+    if (body.name === 'SIMULATE_ERROR_NETWORK') return HttpResponse.error()
+    if (body.name && simulatedErrors[body.name]) {
+      const { status, code, message } = simulatedErrors[body.name]
+      return errorResponse(status, code, message)
+    }
+    const projectIndex = projects.findIndex((item) => item.id === projectId)
+    if (projectIndex === -1) return errorResponse(404, 'PROJECT_NOT_FOUND', 'Project not found.')
+
+    const current = projects[projectIndex]
+    const name = typeof body.name === 'string' ? body.name.trim() : ''
+    if (!name || name.length > 100 || !body.design) {
+      return errorResponse(400, 'VALIDATION_ERROR', 'Project name and design are required.')
+    }
+    const updated = { ...current, name, updatedAt: new Date().toISOString() }
+    projects[projectIndex] = updated
+    designs.set(projectId, body.design)
+    return HttpResponse.json({ ...updated, design: body.design })
+  }),
   
   // DELETE /api/projects/:projectId
   http.delete('*/api/projects/:projectId', async ({ request, params }) => {
