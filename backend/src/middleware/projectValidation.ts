@@ -30,6 +30,10 @@ export const validateCreateProjectBody = (
 
   const designResult = validateDesign(raw.design);
   if (!designResult.valid) {
+    if (designResult.code === 'SHAPE_LIMIT_REACHED') {
+      res.status(409).json({ error: { code: designResult.code, message: designResult.message } });
+      return;
+    }
     reject(res, designResult.message);
     return;
   }

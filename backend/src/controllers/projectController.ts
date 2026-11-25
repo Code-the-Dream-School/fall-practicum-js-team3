@@ -4,6 +4,7 @@ import {
   deleteProject,
   listProjects,
   getProject as findProject,
+  updateProject as saveChanges,
   type ProjectSummary,
   type ProjectView,
 } from '../repositories/projectRepository';
@@ -13,6 +14,7 @@ import { ApiError } from '../errors/ApiError';
 // CREATE PROJECT
 type CreateProject = (owner: unknown, input: CreateProjectBody) => Promise<ProjectSummary>;
 type GetProject = (owner: unknown, id: unknown) => Promise<ProjectView | null>;
+type UpdateProject = (owner: unknown, id: unknown, changes: CreateProjectBody) => Promise<ProjectView | null>;
 
 export const makeCreateProjectHandler = (create: CreateProject = saveProject) =>
   async (req: Request<{}, {}, CreateProjectBody>, res: Response, next: NextFunction): Promise<void> => {
@@ -87,3 +89,40 @@ export const makeGetProjectHandler = (get: GetProject = findProject) =>
     }
   };
 
+// UPDATE PROJECT (TEAM3-138)
+// The owner comes from the login token (res.locals.userId), never from the request body.
+// A missing project and a project owned by someone else both give the same 404.
+// The editor cannot draw a block without "rotation", so PUT fills it in as "no rotation".
+
+const withDefaultRotation = (body: CreateProjectBody): CreateProjectBody => ({
+  ...body,
+  design: {
+    ...body.design,
+    blocks: body.design.blocks.map((block) => ({
+      ...block,
+      rotation: block.rotation ?? { x: 0, y: 0, z: 0 },
+    })),
+  },
+});
+
+export const makeUpdateProjectHandler = (update: UpdateProject = saveChanges) =>
+  async (
+    req: Request<{ id: string }, {}, CreateProjectBody>,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const owner: unknown = res.locals.userId;
+      const project = await update(owner, req.params.id, withDefaultRotation(req.body));
+      if (!project) {
+        res.status(404).json({
+          error: { code: 'PROJECT_NOT_FOUND', message: 'Project not found.' },
+        });
+        return;
+      }
+
+      res.status(200).json(project);
+    } catch (error) {
+      next(error);
+    }
+  };
