@@ -7,6 +7,8 @@
   - isLoading: true until the app has checked at startup whether the saved token is still valid
   - sessionError: a message when the saved login could not be checked because of a connection
     or server problem, otherwise null
+  - sessionExpired: indicates whether a token has gone stale and a new login is required. With
+    sessionExpired, design state is kept so work isn't lost when the session expires.
 
   What it does:
   - login(): sends the credentials, then saves the user and the token
@@ -15,12 +17,14 @@
     token belongs to. If the server says the token is not valid (401), the token is forgotten.
     If the check fails for another reason (no connection, server error), the token is kept and
     sessionError explains why.
+  - expireSession(): clears the expired token and user while preserving the current design,
+    so the user can sign in again without losing unsaved work
 
   The token is also saved in the browser (localStorage), so a page reload keeps you logged in.
 */
 import { create } from 'zustand'
 import { fetchCurrentUser, loginUser, logoutUser } from '../services/authApi'
-import { ApiError } from '../services/apiClient'
+import { ApiError, setUnauthorizedHandler } from '../services/apiClient'
 import { useDesignStore } from './useDesignStore'
 import type { LoginPayload, User } from '../types/auth'
 
@@ -32,9 +36,12 @@ interface AuthState {
   token: string | null
   isLoading: boolean
   sessionError: string | null
+  sessionExpired: boolean
+
   login: (credentials: LoginPayload) => Promise<void>
   logout: () => Promise<void>
   loadUser: (signal?: AbortSignal) => Promise<void>
+  expireSession: () => void
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -42,12 +49,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: localStorage.getItem(TOKEN_STORAGE_KEY), // a token saved from an earlier visit, if any
   isLoading: true,
   sessionError: null, // a message when the saved login could not be checked (no connection or server problem)
+  sessionExpired: false,
 
   async login(credentials) {
     // If the server refuses, this throws, and the login form shows the error
     const { token, user } = await loginUser(credentials)
     localStorage.setItem(TOKEN_STORAGE_KEY, token)
-    set({ token, user, sessionError: null })
+    set({ token, user, sessionError: null, sessionExpired: false })
   },
 
   async logout() {
@@ -59,7 +67,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       useDesignStore.getState().reset()
       localStorage.removeItem(TOKEN_STORAGE_KEY)
-      set({ token: null, user: null, sessionError: null })
+      set({
+        token: null,
+        user: null,
+        sessionError: null,
+        sessionExpired: false,
+      })
     }
   },
 
@@ -89,8 +102,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Keep the token, but do not treat the user as logged in: the Header offers a retry.
       set({
         isLoading: false,
-        sessionError: error instanceof Error ? error.message : 'Could not check your saved login.',
+        sessionError:
+          error instanceof Error
+            ? error.message
+            : 'Could not check your saved login.',
       })
     }
   },
+
+  expireSession() {
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    set({
+      token: null,
+      user: null,
+      isLoading: false,
+      sessionError: null,
+      sessionExpired: true,
+    })
+  },
 }))
+
+setUnauthorizedHandler(() => {
+  useAuthStore.getState().expireSession()
+})

@@ -3,6 +3,13 @@
 // It also turns server errors into one ApiError that the forms can read.
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
+//callback mechanism
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: () => void) {
+  unauthorizedHandler = handler;
+}
+
 //An error that keeps the HTTP status and the API error code, so forms can react to them
 export class ApiError extends Error {
   status: number;
@@ -15,7 +22,6 @@ export class ApiError extends Error {
     this.code = code;
   }
 }
-
 
 // The error format the API sends back: { error: { code, message } }
 interface ErrorBody {
@@ -32,9 +38,9 @@ interface RequestOptions {
 // The one function every API call goes through
 export async function apiRequest<T>(
   path: string,
-  { method = 'GET', body, token, signal }: RequestOptions = {}
+  { method = 'GET', body, token, signal }: RequestOptions = {},
 ): Promise<T> {
-    // Build the headers: JSON for requests with a body, and the token when logged in
+  // Build the headers: JSON for requests with a body, and the token when logged in
   const headers: Record<string, string> = {};
   if (body) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -50,7 +56,11 @@ export async function apiRequest<T>(
   } catch (err) {
     // an aborted request is not an error to show; let the caller handle it
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
-    throw new ApiError(0, 'NETWORK_ERROR', 'Cannot reach the server. Please try again.');
+    throw new ApiError(
+      0,
+      'NETWORK_ERROR',
+      'Cannot reach the server. Please try again.',
+    );
   }
 
   if (response.status === 204) return null as T; // success without a body
@@ -61,13 +71,16 @@ export async function apiRequest<T>(
   } catch {
     // the response had no JSON body
   }
-// Turn a failed response into an ApiError with the server's code and message
+  // Turn a failed response into an ApiError with the server's code and message
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      unauthorizedHandler?.();
+    }
     const apiError = (data as ErrorBody | null)?.error;
     throw new ApiError(
       response.status,
       apiError?.code ?? 'UNKNOWN_ERROR',
-      apiError?.message ?? 'Something went wrong. Please try again.'
+      apiError?.message ?? 'Something went wrong. Please try again.',
     );
   }
   return data as T;
