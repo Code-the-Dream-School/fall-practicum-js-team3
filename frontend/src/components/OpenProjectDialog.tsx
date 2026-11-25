@@ -60,7 +60,9 @@ export default function OpenProjectDialog({ onClose }: OpenProjectDialogProps) {
   function openSelected() {
     if (!selectedId) return
     onClose()
-    navigate(`/editor/${encodeURIComponent(selectedId)}`)
+    navigate(`/editor/${encodeURIComponent(selectedId)}`, {
+      state: { acceptedUnsavedChanges: true },
+    })
   }
 
   let content: ReactNode
