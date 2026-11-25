@@ -463,3 +463,54 @@ test('PUT rejects more than 500 blocks with 409 SHAPE_LIMIT_REACHED', async () =
     error: { code: 'SHAPE_LIMIT_REACHED', message: 'A project holds at most 500 blocks.' },
   });
 });
+
+// ---- PUT fills in a missing "rotation" ----
+const cubeWithoutRotation = {
+  id: 1,
+  type: 'cube',
+  color: '#0ea5e9',
+  position: { x: 0, y: 0, z: 0 },
+  scale: 1,
+};
+
+test('PUT gives a block without rotation the default { x: 0, y: 0, z: 0 }', async () => {
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: 'No rotation', design: { version: 1, blocks: [cubeWithoutRotation] } },
+  });
+
+  const expectedBlocks = [{ ...cubeWithoutRotation, rotation: { x: 0, y: 0, z: 0 } }];
+  assert.equal(result.status, 200);
+  // What the repository receives (this is what is saved in MongoDB).
+  assert.deepEqual((result.input as CreateProjectBody).design.blocks, expectedBlocks);
+  // What the client gets back.
+  assert.deepEqual((result.body as { design: unknown }).design, { version: 1, blocks: expectedBlocks });
+});
+
+test('PUT keeps the rotation of a block that already has one', async () => {
+  const rotated = { ...cubeWithoutRotation, rotation: { x: 1, y: 0.5, z: 0 } };
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: 'With rotation', design: { version: 1, blocks: [rotated] } },
+  });
+
+  assert.equal(result.status, 200);
+  assert.deepEqual((result.input as CreateProjectBody).design.blocks, [rotated]);
+});
+
+test('PUT fills in rotation only for the blocks that miss it', async () => {
+  const rotated = { ...cubeWithoutRotation, id: 2, rotation: { x: 0, y: 0.8, z: 0 } };
+  const result = await requestUpdateProject({
+    authorization: `Bearer ${tokenFor()}`,
+    id: projectId,
+    body: { name: 'Mixed', design: { version: 1, blocks: [cubeWithoutRotation, rotated] } },
+  });
+
+  assert.equal(result.status, 200);
+  assert.deepEqual((result.input as CreateProjectBody).design.blocks, [
+    { ...cubeWithoutRotation, rotation: { x: 0, y: 0, z: 0 } },
+    rotated,
+  ]);
+});
