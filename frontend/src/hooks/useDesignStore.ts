@@ -98,48 +98,62 @@ export const useDesignStore = create<DesignState>((set, get) => ({
   updateSelectedColor(color) {
     const { selectedBlockId } = get()
     if (selectedBlockId === null) return
-    set((state) => ({
-      blocks: state.blocks.map((block) =>
-        block.id === selectedBlockId ? { ...block, color } : block,
-      ),
-      isDirty: true,
-    }))
+    set((state) => {
+      const block = state.blocks.find((item) => item.id === selectedBlockId)
+      if (!block || block.color === color) return state
+      return {
+        blocks: state.blocks.map((item) =>
+          item.id === selectedBlockId ? { ...item, color } : item,
+        ),
+        isDirty: true,
+      }
+    })
   },
 
   moveBlock(id, position) {
-    set((state) => ({
-      blocks: state.blocks.map((block) => (block.id === id ? { ...block, position } : block)),
-      isDirty: true,
-    }))
+    set((state) => {
+      const block = state.blocks.find((item) => item.id === id)
+      if (!block || (block.position.x === position.x && block.position.y === position.y && block.position.z === position.z)) return state
+      return {
+        blocks: state.blocks.map((item) => (item.id === id ? { ...item, position } : item)),
+        isDirty: true,
+      }
+    })
   },
 
   scaleBlock(id, factor) {
-    set((state) => ({
-      blocks: state.blocks.map((block) =>
-        block.id === id
-          ? {
-              ...block,
-              scale: Math.min(MAX_BLOCK_SCALE, Math.max(MIN_BLOCK_SCALE, block.scale * factor)),
-            }
-          : block,
-      ),
-      isDirty: true,
-    }))
+    set((state) => {
+      const block = state.blocks.find((item) => item.id === id)
+      if (!block) return state
+      const scale = Math.min(MAX_BLOCK_SCALE, Math.max(MIN_BLOCK_SCALE, block.scale * factor))
+      if (block.scale === scale) return state
+      return {
+        blocks: state.blocks.map((item) => item.id === id ? { ...item, scale } : item),
+        isDirty: true,
+      }
+    })
   },
 
   rotateBlock(id, rotation) {
-    set((state) => ({
-      blocks: state.blocks.map((block) => (block.id === id ? { ...block, rotation } : block)),
-      isDirty: true,
-    }))
+    set((state) => {
+      const block = state.blocks.find((item) => item.id === id)
+      if (!block || (block.rotation.x === rotation.x && block.rotation.y === rotation.y && block.rotation.z === rotation.z)) return state
+      return {
+        blocks: state.blocks.map((item) => (item.id === id ? { ...item, rotation } : item)),
+        isDirty: true,
+      }
+    })
   },
 
-    removeBlock(id) {
-    set((state) => ({
-      blocks: state.blocks.filter((block) => block.id !== id),
-      selectedBlockId: state.selectedBlockId === id ? null : state.selectedBlockId,
-      isDirty: true,
-    }))
+  removeBlock(id) {
+    set((state) => {
+      if (!state.blocks.some((block) => block.id === id)) return state
+      return {
+        blocks: state.blocks.filter((block) => block.id !== id),
+        selectedBlockId: state.selectedBlockId === id ? null : state.selectedBlockId,
+        isDirty: true,
+      }
+    })
   },
 
   reset() {
@@ -155,7 +169,7 @@ export const useDesignStore = create<DesignState>((set, get) => ({
     return { version: 1, blocks: get().blocks }
   },
 
-    fromJSON(design) {
+  fromJSON(design) {
     // The data comes from the server, so check its shape before using it
     if (!design || design.version !== 1 || !Array.isArray(design.blocks)) {
       throw new Error('Unsupported design format.')
