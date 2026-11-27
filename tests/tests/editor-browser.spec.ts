@@ -79,6 +79,8 @@ test.describe('Editor after logout (browser, mock backend)', () => {
     await expect(page.getByText('Unsaved changes.')).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await page.getByRole('link', { name: 'Log in', exact: true }).click();
     await expect(page).toHaveURL(/\/login$/);
     await signIn(page, email);
     await expect(page.getByRole('button', { name: 'Save project' })).toBeVisible();

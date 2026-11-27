@@ -1,0 +1,406 @@
+/*
+  LandingPage.css: styles for the landing page only.
+  Every class starts with "landing-" and there are no rules for bare tags (body, h1, a),
+  so nothing here can change another page. Colors live in the variables below so they can
+  move into a shared theme later.
+*/
+
+/* The editor's global CSS locks html, body and #root to the window height with overflow hidden.
+   While the landing page is on screen, let the page grow and scroll. Other pages are not touched. */
+html:has(.landing-page),
+body:has(.landing-page),
+#root:has(.landing-page) {
+  width: auto;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.landing-page {
+  --landing-navy: #011627;
+  --landing-teal: #08a4bd;
+  --landing-teal-dark: #067a8e;
+  --landing-red: #e71d36;
+  --landing-red-dark: #b3132a;
+  --landing-green: #6ba368;
+  --landing-cream: #fff3c4;
+  --landing-floor: #fff1bb;
+  --landing-soft: #2b4257;
+  --landing-white: #ffffff;
+
+  position: relative;
+  isolation: isolate;
+  background: var(--landing-floor);
+  color: var(--landing-navy);
+  font-family: Inter, system-ui, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: clip;
+}
+
+/* The wood grain: one see-through picture fixed to the window, lying over the sketches so they
+   look like they are under the wood. Being fixed, it also covers the small default margin the
+   browser keeps around the page, and it never scrolls or moves. */
+.landing-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url('../assets/landing/wood-grain.svg') center / cover no-repeat;
+}
+
+/* the yellow floor itself, under the sketches and the grain, also over the browser's margin */
+.landing-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background: var(--landing-floor);
+}
+
+/* ---------- top bar ---------- */
+.landing-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 72px;
+  padding: 0 32px;
+  background: var(--landing-white);
+  border-bottom: 1px solid #f0e3a8;
+  /* stays at the top while the page scrolls (it does not animate) */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* the white bar reaches the edges of the window, over the browser's default margin */
+  box-shadow: 0 0 0 100vmax var(--landing-white);
+  clip-path: inset(-100vmax -100vmax 0 -100vmax);
+}
+
+.landing-logo-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.landing-logo {
+  display: block;
+  height: 52px;
+  width: auto;
+}
+
+.landing-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.landing-nav-link {
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: var(--landing-navy);
+  font-size: 18px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.landing-nav-link:hover {
+  background: var(--landing-cream);
+}
+
+/* white text needs the darker teal to be readable */
+.landing-signup {
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: var(--landing-teal-dark);
+  color: var(--landing-white);
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.landing-signup:hover {
+  background: var(--landing-navy);
+}
+
+/* ---------- hero ---------- */
+/* The first screen fills the window, so "About" starts below it. */
+.landing-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.85fr 1.35fr;
+  align-items: center;
+  gap: 32px;
+  min-height: calc(100vh - 72px);
+  box-sizing: border-box;
+  padding: 48px max(32px, calc((100% - 1176px) / 2));
+}
+
+.landing-title {
+  margin: 0 0 16px;
+  font-size: 46px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.landing-lead {
+  margin: 0 0 28px;
+  max-width: 520px;
+  color: var(--landing-soft);
+  font-size: 22px;
+}
+
+/* the main call-to-action: red pill, white text */
+.landing-button {
+  display: inline-block;
+  padding: 14px 32px;
+  border-radius: 999px;
+  background: var(--landing-red);
+  color: var(--landing-white);
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.landing-button:hover {
+  background: var(--landing-red-dark);
+}
+
+/* the chalk sketches lie under the wood grain, a little soft, like drawn on the table */
+.landing-scatter {
+  position: absolute;
+  top: 0;
+  z-index: -2;
+  pointer-events: none;
+  filter: blur(1.3px);
+}
+
+.landing-art {
+  width: 100%;
+  height: auto;
+  /* the wagging tail may swing past the edge of the picture */
+  overflow: visible;
+}
+
+/* ---------- characters: the only things that move ---------- */
+.landing-robot {
+  animation: landing-bob 3.4s ease-in-out infinite;
+}
+
+.landing-arm {
+  transform-box: fill-box;
+  transform-origin: 50% 8%;
+  transform: rotate(-125deg);
+  animation: landing-wave 2.6s ease-in-out infinite;
+}
+
+.landing-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: landing-blink 5s infinite;
+}
+
+.landing-tail {
+  transform-box: fill-box;
+  transform-origin: 10% 85%;
+  animation: landing-wag 2.8s ease-in-out infinite;
+}
+
+@keyframes landing-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes landing-wave {
+  0%,
+  100% {
+    transform: rotate(-125deg);
+  }
+  50% {
+    transform: rotate(-152deg);
+  }
+}
+
+@keyframes landing-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* three wags, then a rest */
+@keyframes landing-wag {
+  0%,
+  44%,
+  100% {
+    transform: rotate(0deg);
+  }
+  8%,
+  24% {
+    transform: rotate(24deg);
+  }
+  16%,
+  32% {
+    transform: rotate(-24deg);
+  }
+}
+
+/* visitors who ask for less motion get a calm picture; the arm stays raised */
+@media (prefers-reduced-motion: reduce) {
+  .landing-robot,
+  .landing-arm,
+  .landing-blink,
+  .landing-tail {
+    animation: none;
+  }
+}
+
+/* ---------- about ---------- */
+.landing-about {
+  position: relative;
+  scroll-margin-top: 72px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 32px 150px;
+  text-align: center;
+}
+
+.landing-about-title {
+  margin: 0 0 12px;
+  font-size: 32px;
+  font-weight: 500;
+}
+
+.landing-about-intro {
+  margin: 0 auto 32px;
+  max-width: 640px;
+  color: var(--landing-soft);
+  font-size: 20px;
+}
+
+.landing-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.landing-card {
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--landing-white);
+  box-shadow: 0 2px 8px rgba(1, 22, 39, 0.08);
+}
+
+.landing-card-icon {
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+}
+
+.landing-card-icon-teal {
+  background: var(--landing-teal);
+}
+
+.landing-card-icon-red {
+  background: var(--landing-red);
+}
+
+.landing-card-icon-green {
+  background: var(--landing-green);
+}
+
+.landing-card-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.landing-card-text {
+  margin: 0;
+  color: var(--landing-soft);
+}
+
+.landing-parents {
+  margin: 0 auto 32px;
+  max-width: 640px;
+  color: var(--landing-soft);
+}
+
+/* ---------- phone ---------- */
+@media (max-width: 760px) {
+  .landing-topbar {
+    height: 64px;
+    padding: 0 12px;
+  }
+
+  .landing-logo {
+    height: 34px;
+  }
+
+  .landing-nav {
+    gap: 2px;
+  }
+
+  .landing-nav-link {
+    padding: 8px;
+    font-size: 15px;
+  }
+
+  .landing-signup {
+    padding: 8px 14px;
+    font-size: 15px;
+  }
+
+  .landing-hero {
+    grid-template-columns: 1fr;
+    min-height: calc(100vh - 64px);
+    padding: 32px 20px;
+    text-align: center;
+  }
+
+  .landing-title {
+    font-size: 32px;
+  }
+
+  .landing-lead {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 18px;
+  }
+
+  .landing-about {
+    scroll-margin-top: 64px;
+    padding: 8px 20px 56px;
+  }
+
+  .landing-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* a copyright notice */
+.landing-footer {
+  padding: 0 32px 28px;
+  text-align: center;
+}
+
+.landing-footer-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--landing-soft);
+}

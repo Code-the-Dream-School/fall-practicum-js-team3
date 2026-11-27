@@ -19,7 +19,7 @@ export default function Header() {
 
   async function handleLogout() {
     await logout()
-    navigate('/login')
+    navigate('/')
   }
 
   return (

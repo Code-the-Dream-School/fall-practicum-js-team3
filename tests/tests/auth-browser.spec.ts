@@ -11,11 +11,13 @@ function uniqueEmail() {
 }
 
 test.describe('Protected pages (browser, mock backend)', () => {
-  test('a visitor who is not logged in is sent from / to the login page', async ({ page }) => {
+  test('a visitor who is not logged in sees the landing page at /', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Big ideas start with simple shapes.' }),
+    ).toBeVisible();
   });
 
   test('a visitor who is not logged in is sent from /projects to the login page', async ({ page }) => {
@@ -103,19 +105,25 @@ test.describe('Login and logout (browser, mock backend)', () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test('logging out returns to the login page and closes the protected pages', async ({ page }) => {
+  test('logging out returns to the landing page and closes the editor', async ({ page }) => {
     const email = uniqueEmail();
     await registerAccount(page, TEST_NAME, email, TEST_PASSWORD);
     await signIn(page, email, TEST_PASSWORD);
     await expect(page.getByText(GREETING)).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Big ideas start with simple shapes.' }),
+    ).toBeVisible();
+    await expect(page.getByText(GREETING)).toBeHidden();
 
-    // The browser's Back button goes to the main page, which must send the visitor to login again
+    // The browser's Back button goes to the main page, which must send the visitor to the landing page
     await page.goBack();
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Big ideas start with simple shapes.' }),
+    ).toBeVisible();
     await expect(page.getByText(GREETING)).toBeHidden();
   });
 
