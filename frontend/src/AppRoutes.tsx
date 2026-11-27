@@ -1,27 +1,32 @@
 /*
   AppRoutes: decides which page to show for each address in the browser.
-    /          -> the existing starter page (App)
-    /register  -> the registration page
+  /          -> the landing page for visitors, or the editor (App) for a logged-in user
+  /register  -> the registration page
   /login     -> the sign-in page
   When the app starts, it also checks whether a saved login (token) is still valid,
   so a user who reloads the page stays logged in.
 */
 import { useEffect } from 'react';
-import { Route, Routes, useBlocker } from 'react-router-dom';
-import App from './App.tsx';
+import { Route, Routes, useBlocker, useLocation } from 'react-router-dom';
 import Header from './components/Header.tsx';
 import { useAuthStore } from './hooks/useAuthStore.ts';
 import { useDesignStore } from './hooks/useDesignStore.ts';
+import { useShowLanding } from './hooks/useShowLanding.ts';
 import LoginPage from './pages/LoginPage.tsx';
 import RegisterPage from './pages/RegisterPage.tsx';
 import MyProjectsPage from './pages/MyProjectsPage.tsx';
 import EditorPage from './pages/EditorPage.tsx';
 import ProtectedRoute from './components/auth/ProtectedRoute.tsx';
+import HomeRoute from './components/auth/HomeRoute.tsx';
 
 export default function AppRoutes() {
   const loadUser = useAuthStore((state) => state.loadUser);
   const isDirty = useDesignStore((state) => state.isDirty);
   const discardDesign = useDesignStore((state) => state.reset);
+  const { pathname } = useLocation();
+  const showLanding = useShowLanding();
+  // The landing page has its own top bar, so the old Header is hidden only while it shows.
+  const hideHeader = pathname === '/' && showLanding;
   const blocker = useBlocker(({ nextLocation, historyAction }) => {
     const navigationState: unknown = nextLocation.state;
     // History entries retain state, but consent only applies to the original Load navigation.
@@ -64,16 +69,9 @@ export default function AppRoutes() {
   }, [isDirty]);
   return (
     <>
-      <Header />
+      {!hideHeader && <Header />}
       <Routes>
-        <Route
-          path='/'
-          element={
-            <ProtectedRoute>
-              <App />
-            </ProtectedRoute>
-          }
-        />
+        <Route path='/' element={<HomeRoute />} />
         <Route path='/register' element={<RegisterPage />} />
         <Route path='/login' element={<LoginPage />} />
         <Route
