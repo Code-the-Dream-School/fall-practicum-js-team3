@@ -10,7 +10,7 @@
 */
 import { useForm } from 'react-hook-form'
 import { ApiError } from '../services/apiClient'
-import { createProject } from '../services/projectApi'
+import { createProject, updateProject } from '../services/projectApi'
 import { useAuthStore } from '../hooks/useAuthStore'
 import { useDesignStore } from '../hooks/useDesignStore'
 import FormField from './FormField'
@@ -42,20 +42,43 @@ export default function SaveProjectDialog({ onClose }: SaveProjectDialogProps) {
       return
     }
     try {
-      const saved = await createProject({ name: name.trim(), design: toJSON() }, token)
+      const payload = { name: name.trim(), design: toJSON() }
+      const saved = project
+        ? await updateProject(project.id, payload, token)
+        : await createProject(payload, token)
       markSaved(saved)
       onClose()
     } catch (err) {
-      let message = 'Something went wrong. Please try again.'
-      if (err instanceof ApiError && err.status === 401) {
-        message = 'Your session has expired. Please sign in again.'
-      } else if (err instanceof ApiError && (err.status === 400 || err.status === 422)) {
-        setError('name', { message: err.message })
-        return
-      } else if (err instanceof ApiError && err.status === 429) {
-        message = 'Too many attempts. Please wait a moment and try again.'
-      } else if (err instanceof Error) {
-        message = err.message
+      let message = 'Could not save your project. Your design is still here; please try again.'
+      if (err instanceof ApiError) {
+        switch (err.status) {
+          case 0:
+            message = 'Cannot reach the server. Your design is still here; check your connection and retry.'
+            break
+          case 400:
+          case 422:
+            message = 'Some project details are invalid. Check the name and try again.'
+            break
+          case 401:
+            message = 'Your session has expired. Please log in again, then retry saving.'
+            break
+          case 404:
+            message = 'This project could not be found. Your design is still here; try saving again.'
+            break
+          case 413:
+            message = 'This design is too large to save. Remove some shapes and try again.'
+            break
+          case 500:
+            message = 'The server could not save your project. Your design is still here; try again.'
+            break
+          case 429:
+            message = 'Too many save attempts. Please wait a moment and try again.'
+            break
+          default:
+            message = 'Could not save your project. Your design is still here; please try again.'
+        }
+      } else if (err instanceof Error && err.message.includes('Cannot reach the server')) {
+        message = 'Cannot reach the server. Your design is still here; check your connection and retry.'
       }
       setError('root.serverError', { message })
     }
@@ -94,7 +117,7 @@ export default function SaveProjectDialog({ onClose }: SaveProjectDialogProps) {
               Cancel
             </button>
             <button type='submit' className='action-btn' disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Save'}
+              {isSubmitting ? 'Saving...' : errors.root?.serverError ? 'Retry save' : 'Save'}
             </button>
           </div>
         </form>

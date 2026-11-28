@@ -4,7 +4,7 @@
   While it works the user sees "Loading..."; if the project cannot be opened, a clear message.
 */
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import App from '../App.tsx';
 import { useAuthStore } from '../hooks/useAuthStore.ts';
 import { useDesignStore } from '../hooks/useDesignStore.ts';
@@ -22,6 +22,7 @@ interface LoadResult {
 export default function EditorPage() {
   // The ":id" part of the address /editor/:id
   const { id } = useParams();
+  const location = useLocation();
   const token = useAuthStore((state) => state.token);
   const fromJSON = useDesignStore((state) => state.fromJSON);
   const markSaved = useDesignStore((state) => state.markSaved);
@@ -31,7 +32,7 @@ export default function EditorPage() {
   const [result, setResult] = useState<LoadResult | null>(null);
 
   // One key per project and attempt. Until an answer arrives for the current key, we are loading
-  const requestKey = `${id}-${attempt}`;
+  const requestKey = `${id}-${attempt}-${location.key}`;
   const loadState: LoadState = result?.key === requestKey ? result.state : 'loading';
 
   useEffect(() => {

@@ -18,9 +18,9 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction): vo
   }
 
   try {
-    const payload = jwt.verify(match[1], secret);
+    const payload = jwt.verify(match[1], secret, { algorithms: ['HS256'] });
     const userId = typeof payload === 'string' ? undefined : (payload as JwtPayload).sub;
-    if (!userId) {
+    if (typeof userId !== 'string' || !userId.trim()) {
       res.status(401).json({
         error: { code: 'UNAUTHENTICATED', message: 'Authentication token is invalid.' },
       });
