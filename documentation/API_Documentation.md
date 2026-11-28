@@ -309,7 +309,12 @@ These endpoints are proposed and must be verified against the backend.
 }
 ```
 
-`design` is the frontend's current scene (`toJSON()` of the design store). It is **not yet agreed with the backend**: the contract above defines only `name`, so the backend must confirm whether it accepts, stores or ignores `design`.
+`design` is the frontend's current scene (`toJSON()` of the design store).
+
+Each block may omit `rotation` for compatibility with older clients; the backend
+stores and returns an omitted rotation as `{ "x": 0, "y": 0, "z": 0 }`.
+Provided rotation vectors are preserved, including when older projects are
+retrieved.
 
 **Example successful response — `201 Created`:**
 

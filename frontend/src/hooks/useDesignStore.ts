@@ -12,7 +12,7 @@
   fromJSON(design) replaces the scene with a design loaded from the server.
 */
 import { create } from 'zustand'
-import type { Block, BlockType, DesignJson, Project } from '../types/project'
+import type { Block, BlockType, DesignJson, Project, SavedDesignJson } from '../types/project'
 
 const SHAPE_COLORS: Record<BlockType, string> = {
   cube: '#0ea5e9',
@@ -69,7 +69,7 @@ interface DesignState {
   removeBlock: (id: number) => void
   reset: () => void
   toJSON: () => DesignJson
-  fromJSON: (design: DesignJson) => void
+  fromJSON: (design: SavedDesignJson) => void
   markSaved: (project: Pick<Project, 'id' | 'name'>) => void
 }
 
@@ -175,7 +175,10 @@ export const useDesignStore = create<DesignState>((set, get) => ({
       throw new Error('Unsupported design format.')
     }
     set({
-      blocks: design.blocks.map((block) => ({ ...block })),
+      blocks: design.blocks.map((block) => ({
+        ...block,
+        rotation: block.rotation === undefined ? { x: 0, y: 0, z: 0 } : block.rotation,
+      })),
       selectedBlockId: null,
       isDirty: false,
     })

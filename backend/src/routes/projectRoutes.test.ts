@@ -10,6 +10,9 @@ import {
   type CreateProjectBody,
 } from '../middleware/projectValidation';
 import type { ProjectView } from '../repositories/projectRepository';
+import { createProject, getProject, updateProject } from '../repositories/projectRepository';
+import { Project } from '../models/Project';
+import mongoose from 'mongoose';
 
 const secret = 'project-route-test-secret-with-more-than-32-characters';
 const originalSecret = process.env.JWT_SECRET;
@@ -242,4 +245,53 @@ test('rejects a request without a token', async () => {
   assert.deepEqual(result.body, {
     error: { code: 'UNAUTHENTICATED', message: 'Authentication is required.' },
   });
+});
+
+const missingRotation = { id: 1, type: 'cube', color: '#ff0000', position: { x: 0, y: 0, z: 0 }, scale: 1 };
+const rotatedBlock = {
+  id: 2, type: 'sphere', color: '#00ff00', position: { x: 1, y: 0, z: 0 }, scale: 1,
+  rotation: { x: 0.2, y: -0.5, z: 1 },
+};
+const defaultedBlock = { ...missingRotation, rotation: { x: 0, y: 0, z: 0 } };
+
+for (const [label, blocks, expectedBlocks] of [
+  ['missing', [missingRotation], [defaultedBlock]],
+  ['present', [rotatedBlock], [rotatedBlock]],
+  ['mixed', [missingRotation, rotatedBlock], [defaultedBlock, rotatedBlock]],
+] as const) {
+  test(`create, update and load preserve ${label} rotations`, async (t) => {
+    const id = new mongoose.Types.ObjectId(projectId);
+    const input = { version: 1, blocks };
+    const expected = { version: 1, blocks: expectedBlocks };
+    const now = new Date();
+    const record = { _id: id, owner: 'user-from-token', name: 'Rotation test', design: input, createdAt: now, updatedAt: now };
+
+    const insert = t.mock.method(Project.collection, 'insertOne', async (document: { _id: mongoose.Types.ObjectId; design: unknown }) => {
+      assert.deepEqual(document.design, expected);
+      return { acknowledged: true, insertedId: document._id };
+    });
+    await createProject('user-from-token', { name: record.name, design: input });
+    assert.equal(insert.mock.callCount(), 1);
+
+    const update = t.mock.method(Project.collection, 'findOneAndUpdate', async (_filter: unknown, changes: { $set?: { design?: unknown } }) => {
+      assert.deepEqual(changes.$set?.design, expected);
+      return { ...record, design: expected };
+    });
+    const updated = await updateProject('user-from-token', projectId, { name: record.name, design: input });
+    assert.equal(update.mock.callCount(), 1);
+    assert.deepEqual(updated?.design, expected);
+
+    t.mock.method(Project.collection, 'findOne', async () => record);
+    const loaded = await getProject('user-from-token', projectId);
+    assert.deepEqual(loaded?.design, expected);
+  });
+}
+
+test('create and update reject invalid supplied rotations', async () => {
+  for (const rotation of [null, { x: 1, y: 2 }]) {
+    const invalidDesign = { version: 1, blocks: [{ ...missingRotation, rotation }] };
+    const input = { name: 'Rotation test', design: invalidDesign };
+    await assert.rejects(createProject('user-from-token', input), { code: 'VALIDATION_ERROR' });
+    await assert.rejects(updateProject('user-from-token', projectId, input), { code: 'VALIDATION_ERROR' });
+  }
 });

@@ -88,6 +88,68 @@ test.describe('Editor after logout (browser, mock backend)', () => {
   });
 });
 
+test('loads and saves legacy blocks with missing and existing rotations', async ({ page }) => {
+  await registerAndSignIn(page);
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  const rotation = { x: 0.2, y: -0.5, z: 1 };
+  const blocks = [
+    { id: 1, type: 'cube', color: '#0ea5e9', position: { x: 0, y: 0, z: 0 }, scale: 1 },
+    { id: 2, type: 'sphere', color: '#ef4444', position: { x: 2, y: 0, z: 0 }, scale: 1, rotation },
+    { id: 3, type: 'cylinder', color: '#10b981', position: { x: 4, y: 0, z: 0 }, scale: 1 },
+  ];
+
+  await page.evaluate((legacyBlocks) => {
+    const w = window as unknown as { __realFetch?: typeof fetch };
+    w.__realFetch = window.fetch.bind(window);
+    const realFetch = w.__realFetch;
+    window.fetch = (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith('/api/projects/project_11') && (!init?.method || init.method === 'GET')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          id: 'project_11', name: 'x', createdAt: '2026-10-28T17:00:00Z',
+          updatedAt: '2026-10-31T20:45:00Z', design: { version: 1, blocks: legacyBlocks },
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
+      return realFetch(input, init);
+    };
+  }, blocks);
+
+  await page.getByRole('link', { name: 'My Projects' }).click();
+  await page.getByRole('link', { name: 'x', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'x', exact: true })).toBeVisible();
+  await expect(page.locator('.canvas-wrapper canvas')).toBeVisible();
+  await expect(page.getByRole('status')).toHaveText('Saved as "x".');
+
+  await restoreProjectsAnswer(page);
+  await page.getByRole('button', { name: 'Cube' }).click();
+  await page.getByRole('button', { name: 'Save project' }).click();
+  const response = page.waitForResponse((result) =>
+    result.url().endsWith('/api/projects/project_11') && result.request().method() === 'PUT',
+  );
+  await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+  const saveResponse = await response;
+  const saved = await saveResponse.json() as { design: { blocks: { rotation: typeof rotation }[] } };
+  expect(saved.design.blocks.map((block) => block.rotation)).toEqual([
+    { x: 0, y: 0, z: 0 }, rotation, { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 },
+  ]);
+  await expect(page.getByRole('status')).toHaveText('Saved as "x".');
+
+  await page.getByRole('link', { name: 'My Projects' }).click();
+  await page.getByRole('link', { name: 'x', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Saved as "x".');
+  await expect(page.locator('.canvas-wrapper canvas')).toBeVisible();
+  await page.getByRole('button', { name: 'Cube' }).click();
+  await page.getByRole('button', { name: 'Save project' }).click();
+  const secondResponse = page.waitForResponse((result) =>
+    result.url().endsWith('/api/projects/project_11') && result.request().method() === 'PUT',
+  );
+  await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+  const savedAgain = await (await secondResponse).json() as { design: { blocks: { rotation: typeof rotation }[] } };
+  expect(savedAgain.design.blocks.slice(0, 4)).toEqual(saved.design.blocks);
+  expect(pageErrors).toEqual([]);
+});
+
 test.describe('Loading a project with unsaved changes (browser, mock backend)', () => {
   async function openProjectFromMyProjects(page: Page, name: string) {
     await page.getByRole('link', { name: 'My Projects' }).click();

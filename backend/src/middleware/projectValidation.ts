@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { validateDesign, type Design } from '../validation/projectDesign';
+import { validateDesign, type DesignInput } from '../validation/projectDesign';
 
 export interface CreateProjectBody {
   name: string;
-  design: Design;
+  design: DesignInput;
 }
 
 const reject = (res: Response, message: string): void => {
@@ -36,7 +36,7 @@ export const validateCreateProjectBody = (
 
   // Keep only fields the create contract accepts. In particular, owner is never
   // copied from client input; the controller reads it from the verified JWT.
-  req.body = { name: raw.name.trim(), design: raw.design as Design } satisfies CreateProjectBody;
+  req.body = { name: raw.name.trim(), design: raw.design as DesignInput } satisfies CreateProjectBody;
   next();
 };
 

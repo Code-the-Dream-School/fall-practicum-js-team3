@@ -12,10 +12,23 @@ export interface Shape {
     type: ShapeType;
     color: string;
     position: Vec3;
-    rotation?: Vec3;
+    rotation: Vec3;
     scale: number;
 }
 export interface Design { version: number; blocks: Shape[] }
+export type DesignInput = Omit<Design, 'blocks'> & {
+    blocks: (Omit<Shape, 'rotation'> & { rotation?: Vec3 })[];
+};
+
+export function normalizeDesign(design: DesignInput): Design {
+    return {
+        ...design,
+        blocks: design.blocks.map((block) => ({
+            ...block,
+            rotation: block.rotation === undefined ? { x: 0, y: 0, z: 0 } : block.rotation,
+        })),
+    };
+}
 
 export type DesignResult =
     | { valid: true }
