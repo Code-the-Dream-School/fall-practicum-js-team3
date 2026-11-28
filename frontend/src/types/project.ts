@@ -13,7 +13,7 @@ export interface ProjectListResponse {
 
 // One project with its saved shapes, as returned by GET /api/projects/:id.
 export interface ProjectWithDesign extends Project {
-  design: DesignJson;
+  design: SavedDesignJson;
 }
 
 // The shapes the user built, as produced by the design store's toJSON()
@@ -31,6 +31,12 @@ export interface Block {
 export interface DesignJson {
   version: 1;
   blocks: Block[];
+}
+
+// Older saved projects can omit rotation; the editor fills it in on load.
+export interface SavedDesignJson {
+  version: 1;
+  blocks: (Omit<Block, 'rotation'> & { rotation?: Block['rotation'] })[];
 }
 
 // What we send to create a project: the name from the dialog and the current design

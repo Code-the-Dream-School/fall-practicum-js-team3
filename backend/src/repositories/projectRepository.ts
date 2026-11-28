@@ -3,8 +3,10 @@ import { Project } from '../models/Project';
 import { ApiError } from '../errors/ApiError';
 import {
     validateDesign,
+    normalizeDesign,
     CURRENT_SCHEMA_VERSION,
     type Design,
+    type DesignInput,
 } from '../validation/projectDesign';
 
 const NAME_MAX_LENGTH = 100;
@@ -67,7 +69,7 @@ function cleanName(name: unknown): string {
     return trimmed;
 }
 
-function assertValidDesign(design: unknown): asserts design is Design {
+function assertValidDesign(design: unknown): asserts design is DesignInput {
     const result = validateDesign(design);
     if (!result.valid) {
         const status = result.code === 'SHAPE_LIMIT_REACHED' ? 409 : 422;
@@ -111,7 +113,7 @@ function toSummary(record: ProjectRecord): ProjectSummary {
 // records edited by hand or from older versions aren't re-checked.
 function toProject(record: ProjectRecord): ProjectView {
     const emptyDesign: Design = { version: CURRENT_SCHEMA_VERSION, blocks: [] };
-    return { ...toSummary(record), design: (record.design ?? emptyDesign) as Design };
+    return { ...toSummary(record), design: normalizeDesign((record.design ?? emptyDesign) as DesignInput) };
 }
 
 // ---- data access ----
@@ -123,7 +125,7 @@ export async function createProject(owner: unknown, input: ProjectInput = {}): P
     const design = input.design ?? { version: CURRENT_SCHEMA_VERSION, blocks: [] };
     assertValidDesign(design);
 
-    const record = await Project.create({ owner, name, design });
+    const record = await Project.create({ owner, name, design: normalizeDesign(design) });
     return toSummary(record);
 }
 
@@ -174,7 +176,7 @@ export async function updateProject(
     if (patch.name !== undefined) changes.name = cleanName(patch.name);
     if (patch.design !== undefined) {
         assertValidDesign(patch.design);
-        changes.design = patch.design;
+        changes.design = normalizeDesign(patch.design);
     }
     if (Object.keys(changes).length === 0) return getProject(owner, id);
 
