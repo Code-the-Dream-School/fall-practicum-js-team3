@@ -1,4 +1,6 @@
-
+import app from '../app';
+import type { AddressInfo } from 'node:net';
+import { once } from 'node:events';
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 import jwt from 'jsonwebtoken';
@@ -106,17 +108,36 @@ test('deletes a project owned by the authenticated user', async () => {
   assert.equal(result.body, undefined);
 });
 
-// TEST 2: Missing authentication
+// TEST 2: Missing authentication through the real router
 test('rejects deletion without a token', async () => {
-  const result = await requestDelete({});
+  const server = app.listen(0, '127.0.0.1');
 
-  assert.equal(result.status, 401);
-  assert.deepEqual(result.body, {
-    error: {
-      code: 'UNAUTHENTICATED',
-      message: 'Authentication is required.',
-    },
-  });
+  try {
+    await once(server, 'listening');
+
+    const { port } = server.address() as AddressInfo;
+
+    const response = await fetch(
+      `http://127.0.0.1:${port}/api/projects/${projectId}`,
+      { method: 'DELETE' },
+    );
+
+    assert.equal(response.status, 401);
+
+    assert.deepEqual(await response.json(), {
+      error: {
+        code: 'UNAUTHENTICATED',
+        message: 'Authentication is required.',
+      },
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  }
 });
 
 // TEST 3: Invalid authentication
@@ -126,6 +147,12 @@ test('rejects deletion with an invalid token', async () => {
   });
 
   assert.equal(result.status, 401);
+  assert.deepEqual(result.body, {
+    error: {
+      code: 'UNAUTHENTICATED',
+      message: 'Authentication token is invalid or expired.',
+    },
+  });
 });
 
 // TEST 4: Project not found
